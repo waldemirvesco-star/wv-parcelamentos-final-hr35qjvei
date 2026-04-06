@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Table,
@@ -33,8 +33,17 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Search, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 
 const statusColors: Record<string, string> = {
   Ativo: 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100',
@@ -46,34 +55,42 @@ const statusColors: Record<string, string> = {
 interface InstallmentTableProps {
   data: any[]
   onDelete: (id: string) => void
+  page: number
+  onPageChange: (page: number) => void
+  totalPages: number
+  totalRecords: number
+  searchInput: string
+  onSearchChange: (val: string) => void
+  statusFilter: string
+  onStatusFilterChange: (val: string) => void
+  itemsPerPage: number
 }
 
-export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('Todos')
-  const [page, setPage] = useState(1)
-  const { toast } = useToast()
+export function InstallmentTable({
+  data,
+  onDelete,
+  page,
+  onPageChange,
+  totalPages,
+  totalRecords,
+  searchInput,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  itemsPerPage,
+}: InstallmentTableProps) {
   const navigate = useNavigate()
-  const ITEMS_PER_PAGE = 5
-
-  const filteredData = useMemo(() => {
-    return data.filter((item) => {
-      const empresa = item.empresa_nome || ''
-      const matchesSearch =
-        empresa.toLowerCase().includes(searchTerm.toLowerCase()) || item.cnpj.includes(searchTerm)
-      const matchesStatus = statusFilter === 'Todos' || item.status === statusFilter
-      return matchesSearch && matchesStatus
-    })
-  }, [data, searchTerm, statusFilter])
-
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
-  const paginatedData = filteredData.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
   const handleAction = (action: string, id: string) => {
-    if (action === 'Ver Detalhes' || action === 'Editar') {
-      navigate(`/parcelamento/${id}${action === 'Editar' ? '?edit=true' : ''}`)
-    } else {
-      toast({ title: action, description: `Ação "${action}" selecionada (Mock).` })
+    if (action === 'Ver Detalhes') navigate(`/parcelamento/${id}`)
+    if (action === 'Editar') navigate(`/parcelamento/${id}?edit=true`)
+  }
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      onDelete(itemToDelete)
+      setItemToDelete(null)
     }
   }
 
@@ -85,20 +102,11 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
           <Input
             placeholder="Buscar por CNPJ ou Empresa..."
             className="pl-9 bg-white"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setPage(1)
-            }}
+            value={searchInput}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => {
-            setStatusFilter(v)
-            setPage(1)
-          }}
-        >
+        <Select value={statusFilter} onValueChange={onStatusFilterChange}>
           <SelectTrigger className="w-full sm:w-[180px] bg-white">
             <SelectValue placeholder="Filtrar por Status" />
           </SelectTrigger>
@@ -125,14 +133,14 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedData.length === 0 ? (
+            {data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-slate-500">
                   Nenhum parcelamento encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedData.map((item) => (
+              data.map((item) => (
                 <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
                   <TableCell className="font-medium text-slate-700">{item.cnpj}</TableCell>
                   <TableCell>{item.empresa_nome}</TableCell>
@@ -140,17 +148,21 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
                   <TableCell>
                     <div className="flex flex-col gap-1.5">
                       <div className="flex justify-between text-xs text-slate-500 font-medium">
-                        <span>{item.parcela_atual} pagas</span>
-                        <span>de {item.quantidade_parcelas}</span>
+                        <span>{item.parcela_atual || 0} pagas</span>
+                        <span>de {item.quantidade_parcelas || 0}</span>
                       </div>
                       <Progress
-                        value={(item.parcela_atual / item.quantidade_parcelas) * 100}
+                        value={
+                          item.quantidade_parcelas
+                            ? ((item.parcela_atual || 0) / item.quantidade_parcelas) * 100
+                            : 0
+                        }
                         className="h-1.5"
                       />
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={statusColors[item.status]}>
+                    <Badge variant="outline" className={statusColors[item.status] || ''}>
                       {item.status}
                     </Badge>
                   </TableCell>
@@ -170,8 +182,8 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600"
-                          onClick={() => onDelete(item.id)}
+                          className="text-red-600 focus:text-red-600 cursor-pointer"
+                          onClick={() => setItemToDelete(item.id)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" /> Excluir
                         </DropdownMenuItem>
@@ -187,14 +199,14 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
 
       <div className="p-4 border-t border-slate-100 flex items-center justify-between">
         <p className="text-sm text-slate-500">
-          Mostrando {filteredData.length === 0 ? 0 : (page - 1) * ITEMS_PER_PAGE + 1} até{' '}
-          {Math.min(page * ITEMS_PER_PAGE, filteredData.length)} de {filteredData.length} registros
+          Mostrando {data.length === 0 ? 0 : (page - 1) * itemsPerPage + 1} até{' '}
+          {Math.min(page * itemsPerPage, totalRecords)} de {totalRecords} registros
         </p>
         <Pagination className="w-auto mx-0">
           <PaginationContent>
             <PaginationItem>
               <PaginationPrevious
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => onPageChange(Math.max(1, page - 1))}
                 className={page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
               />
             </PaginationItem>
@@ -205,7 +217,7 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
             </PaginationItem>
             <PaginationItem>
               <PaginationNext
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                 className={
                   page === totalPages || totalPages === 0
                     ? 'pointer-events-none opacity-50'
@@ -216,6 +228,23 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
           </PaginationContent>
         </Pagination>
       </div>
+
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Parcelamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este parcelamento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

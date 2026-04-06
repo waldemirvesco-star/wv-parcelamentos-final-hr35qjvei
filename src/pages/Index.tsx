@@ -1,40 +1,65 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { CheckCircle, Archive, Send, AlertCircle, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { InstallmentTable } from '@/components/dashboard/InstallmentTable'
 import { useToast } from '@/hooks/use-toast'
-import { getParcelamentos, deleteParcelamento } from '@/services/parcelamentos'
+import {
+  getParcelamentosPaginated,
+  getParcelamentosStats,
+  deleteParcelamento,
+} from '@/services/parcelamentos'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Index() {
   const [installments, setInstallments] = useState<any[]>([])
+  const [stats, setStats] = useState({ ativos: 0, encerrados: 0, enviados: 0, pendentes: 0 })
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
+  const [searchInput, setSearchInput] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('Todos')
   const { toast } = useToast()
 
-  const loadData = async () => {
+  const ITEMS_PER_PAGE = 10
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  const loadData = useCallback(async () => {
     try {
-      const data = await getParcelamentos()
-      setInstallments(data)
+      const [paginatedData, statsData] = await Promise.all([
+        getParcelamentosPaginated(page, ITEMS_PER_PAGE, searchTerm, statusFilter),
+        getParcelamentosStats(),
+      ])
+      setInstallments(paginatedData.items)
+      setTotalPages(paginatedData.totalPages)
+      setTotalRecords(paginatedData.totalItems)
+      setStats(statsData)
     } catch (err) {
       console.error(err)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os dados.',
+        variant: 'destructive',
+      })
     }
-  }
+  }, [page, searchTerm, statusFilter, toast])
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
   useRealtime('parcelamentos', () => {
     loadData()
   })
-
-  const stats = {
-    ativos: installments.filter((i) => i.status === 'Ativo').length,
-    encerrados: installments.filter((i) => i.status === 'Encerrado').length,
-    enviados: installments.filter((i) => i.status === 'Enviado').length,
-    pendentes: installments.filter((i) => i.status === 'Pendente').length,
-  }
 
   const handleDelete = async (id: string) => {
     try {
@@ -44,6 +69,7 @@ export default function Index() {
         description: 'O registro foi removido com sucesso.',
         variant: 'default',
       })
+      loadData()
     } catch (err) {
       toast({
         title: 'Erro',
@@ -99,7 +125,22 @@ export default function Index() {
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-slate-800">Lista de Parcelamentos</h2>
         </div>
-        <InstallmentTable data={installments} onDelete={handleDelete} />
+        <InstallmentTable
+          data={installments}
+          onDelete={handleDelete}
+          page={page}
+          onPageChange={setPage}
+          totalPages={totalPages}
+          totalRecords={totalRecords}
+          searchInput={searchInput}
+          onSearchChange={setSearchInput}
+          statusFilter={statusFilter}
+          onStatusFilterChange={(v) => {
+            setStatusFilter(v)
+            setPage(1)
+          }}
+          itemsPerPage={ITEMS_PER_PAGE}
+        />
       </div>
     </div>
   )
