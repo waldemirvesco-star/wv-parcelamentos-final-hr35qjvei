@@ -43,7 +43,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Search, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
+import { Search, MoreHorizontal, Eye, Edit, Trash2, Filter, Download } from 'lucide-react'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import { Label } from '@/components/ui/label'
 
 const statusColors: Record<string, string> = {
   Ativo: 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100',
@@ -64,6 +66,15 @@ interface InstallmentTableProps {
   statusFilter: string
   onStatusFilterChange: (val: string) => void
   itemsPerPage: number
+  orgaoFilter: string
+  onOrgaoFilterChange: (val: string) => void
+  metodoEnvioFilter: string
+  onMetodoEnvioFilterChange: (val: string) => void
+  dateStart: string
+  onDateStartChange: (val: string) => void
+  dateEnd: string
+  onDateEndChange: (val: string) => void
+  onExportCsv: () => void
 }
 
 export function InstallmentTable({
@@ -78,8 +89,18 @@ export function InstallmentTable({
   statusFilter,
   onStatusFilterChange,
   itemsPerPage,
+  orgaoFilter,
+  onOrgaoFilterChange,
+  metodoEnvioFilter,
+  onMetodoEnvioFilterChange,
+  dateStart,
+  onDateStartChange,
+  dateEnd,
+  onDateEndChange,
+  onExportCsv,
 }: InstallmentTableProps) {
   const navigate = useNavigate()
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
   const handleAction = (action: string, id: string) => {
@@ -96,28 +117,100 @@ export function InstallmentTable({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-          <Input
-            placeholder="Buscar por CNPJ ou Empresa..."
-            className="pl-9 bg-white"
-            value={searchInput}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
+      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+            <Input
+              placeholder="Buscar por CNPJ ou Empresa..."
+              className="pl-9 bg-white"
+              value={searchInput}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+              <SelectTrigger className="w-full sm:w-[150px] bg-white">
+                <SelectValue placeholder="Filtrar por Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todos Status</SelectItem>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Encerrado">Encerrado</SelectItem>
+                <SelectItem value="Enviado">Enviado</SelectItem>
+                <SelectItem value="Pendente">Pendente</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+              className={isFiltersOpen ? 'bg-slate-100' : 'bg-white'}
+            >
+              <Filter className="h-4 w-4 mr-2" /> Filtros
+            </Button>
+            <Button onClick={onExportCsv} variant="outline" className="bg-white">
+              <Download className="h-4 w-4 mr-2" /> CSV
+            </Button>
+          </div>
         </div>
-        <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-          <SelectTrigger className="w-full sm:w-[180px] bg-white">
-            <SelectValue placeholder="Filtrar por Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Todos">Todos os Status</SelectItem>
-            <SelectItem value="Ativo">Ativo</SelectItem>
-            <SelectItem value="Encerrado">Encerrado</SelectItem>
-            <SelectItem value="Enviado">Enviado</SelectItem>
-            <SelectItem value="Pendente">Pendente</SelectItem>
-          </SelectContent>
-        </Select>
+
+        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+          <CollapsibleContent className="pt-4 border-t border-slate-200 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500 font-medium">Órgão</Label>
+                <Select value={orgaoFilter} onValueChange={onOrgaoFilterChange}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Selecione o órgão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todos">Todos os Órgãos</SelectItem>
+                    <SelectItem value="Receita Federal">Receita Federal</SelectItem>
+                    <SelectItem value="Estado SP">Estado SP</SelectItem>
+                    <SelectItem value="Prefeitura">Prefeitura</SelectItem>
+                    <SelectItem value="PGFN">PGFN</SelectItem>
+                    <SelectItem value="Secretaria da Fazenda">Secretaria da Fazenda</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500 font-medium">Método de Envio</Label>
+                <Select value={metodoEnvioFilter} onValueChange={onMetodoEnvioFilterChange}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Método de Envio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Todos">Todos</SelectItem>
+                    <SelectItem value="Email">Email</SelectItem>
+                    <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                    <SelectItem value="Ambos">Ambos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500 font-medium">Data Adesão (De)</Label>
+                <Input
+                  type="date"
+                  value={dateStart}
+                  onChange={(e) => onDateStartChange(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500 font-medium">Data Adesão (Até)</Label>
+                <Input
+                  type="date"
+                  value={dateEnd}
+                  onChange={(e) => onDateEndChange(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       <div className="overflow-x-auto">
