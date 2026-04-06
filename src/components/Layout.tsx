@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
+import { NotificationCenter } from '@/components/NotificationCenter'
 
 function AppSidebar() {
   const location = useLocation()
@@ -104,10 +105,7 @@ export default function Layout() {
               </h2>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="text-slate-500 relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
-              </Button>
+              <NotificationCenter />
               <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
               <div className="flex items-center gap-2 hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
                 <Avatar className="h-8 w-8 border border-slate-200">
