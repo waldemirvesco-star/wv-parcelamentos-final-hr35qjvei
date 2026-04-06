@@ -1,5 +1,14 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FileText, PieChart, Settings, Bell, User, LogOut } from 'lucide-react'
+import {
+  LayoutDashboard,
+  FileText,
+  PieChart,
+  Settings,
+  Bell,
+  User,
+  LogOut,
+  Users,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Sidebar,
@@ -16,15 +25,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Parcelamentos', href: '#', icon: FileText },
-  { name: 'Relatórios', href: '#', icon: PieChart },
-  { name: 'Configurações', href: '#', icon: Settings },
-]
-
 function AppSidebar() {
   const location = useLocation()
+  const { user } = useAuth()
+
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Parcelamentos', href: '#', icon: FileText },
+    { name: 'Relatórios', href: '#', icon: PieChart },
+    ...(user?.role === 'Admin' ? [{ name: 'Usuários', href: '/admin/users', icon: Users }] : []),
+    { name: 'Configurações', href: '#', icon: Settings },
+  ]
 
   return (
     <Sidebar className="border-r border-slate-200 bg-white/50 backdrop-blur-xl">

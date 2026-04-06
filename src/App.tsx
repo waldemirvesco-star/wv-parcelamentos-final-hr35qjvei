@@ -8,12 +8,21 @@ import InstallmentDetail from './pages/InstallmentDetail'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import AdminUsers from './pages/admin/Users'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth()
   if (loading) return null
   if (!user) return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/" replace />
+  if (user.role !== 'Admin') return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
@@ -35,6 +44,14 @@ const App = () => (
             <Route path="/dashboard" element={<Index />} />
             <Route path="/novo-parcelamento" element={<CreateInstallment />} />
             <Route path="/parcelamento/:id" element={<InstallmentDetail />} />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              }
+            />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
