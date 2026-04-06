@@ -4,6 +4,7 @@ export const getHistorico = (parcelamentoId: string) =>
   pb.collection('historico_alteracoes').getFullList({
     filter: `parcelamento_id = "${parcelamentoId}"`,
     sort: '-created',
+    expand: 'usuario_id',
   })
 
 export const createHistorico = (data: any) =>

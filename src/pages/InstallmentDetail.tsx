@@ -22,11 +22,25 @@ import { ArrowLeft, CheckCircle, Edit, Save, X, Eye, EyeOff, History } from 'luc
 import { useToast } from '@/hooks/use-toast'
 import { getParcelamento, updateParcelamento } from '@/services/parcelamentos'
 import { getHistorico, createHistorico } from '@/services/historico'
+import { useRealtime } from '@/hooks/use-realtime'
+import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { cn } from '@/lib/utils'
+
+const formatVal = (v: any) =>
+  v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v)
 
 const ViewField = ({ label, value }: { label: string; value?: string | number }) => (
   <div>
     <p className="text-sm font-medium text-slate-500">{label}</p>
     <p className="text-base text-slate-900 mt-1 font-medium">{value || '-'}</p>
+  </div>
+)
+
+const Field = ({ label, error, children }: any) => (
+  <div className="space-y-1 flex flex-col">
+    <Label className={cn(error && 'text-destructive')}>{label}</Label>
+    {children}
+    {error && <p className="text-xs text-destructive">{error}</p>}
   </div>
 )
 
@@ -43,16 +57,15 @@ export default function InstallmentDetail() {
   const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true')
   const [formData, setFormData] = useState<any>({})
   const [showPassword, setShowPassword] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const loadData = async () => {
     if (!id) return
     try {
-      const data = await getParcelamento(id)
+      const [data, history] = await Promise.all([getParcelamento(id), getHistorico(id)])
       setInstallment(data)
-      setFormData(data)
-
-      const history = await getHistorico(id)
       setHistoryLogs(history)
+      if (isEditing && Object.keys(formData).length === 0) setFormData(data)
     } catch (err) {
       console.error(err)
     } finally {
@@ -63,6 +76,14 @@ export default function InstallmentDetail() {
   useEffect(() => {
     loadData()
   }, [id])
+
+  useRealtime('parcelamentos', (e) => {
+    if (e.record.id === id) loadData()
+  })
+
+  useRealtime('historico_alteracoes', (e) => {
+    if (e.record.parcelamento_id === id) loadData()
+  })
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Carregando detalhes...</div>
@@ -78,14 +99,9 @@ export default function InstallmentDetail() {
   }
 
   const handleSave = async () => {
+    setFieldErrors({})
     try {
       const changedKeys = Object.keys(formData).filter((key) => {
-        const v1 = JSON.stringify(formData[key])
-        const v2 = JSON.stringify(installment[key])
-        return v1 !== v2
-      })
-
-      for (const key of changedKeys) {
         if (
           [
             'id',
@@ -97,22 +113,35 @@ export default function InstallmentDetail() {
             'expand',
           ].includes(key)
         )
-          continue
+          return false
+        return formatVal(formData[key]) !== formatVal(installment[key])
+      })
 
-        await createHistorico({
-          parcelamento_id: installment.id,
-          campo_alterado: key,
-          valor_anterior: JSON.stringify(installment[key] || ''),
-          valor_novo: JSON.stringify(formData[key] || ''),
-        })
+      if (changedKeys.length === 0) {
+        setIsEditing(false)
+        return
       }
+
+      await Promise.all(
+        changedKeys.map((key) =>
+          createHistorico({
+            parcelamento_id: installment.id,
+            campo_alterado: key,
+            valor_anterior: formatVal(installment[key]),
+            valor_novo: formatVal(formData[key]),
+          }),
+        ),
+      )
 
       await updateParcelamento(installment.id, formData)
       setIsEditing(false)
-      toast({ title: 'Alterações salvas', description: 'O parcelamento foi atualizado.' })
-      loadData()
+      toast({
+        title: 'Alterações salvas',
+        description: 'O parcelamento foi atualizado com sucesso.',
+      })
     } catch (err) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao salvar alterações.' })
+      setFieldErrors(extractFieldErrors(err))
+      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao salvar as alterações.' })
     }
   }
 
@@ -125,14 +154,18 @@ export default function InstallmentDetail() {
         valor_novo: 'Encerrado',
       })
       await updateParcelamento(installment.id, { status: 'Encerrado' })
-      toast({ title: 'Parcelamento Encerrado', description: 'O status foi alterado.' })
-      loadData()
+      toast({
+        title: 'Parcelamento Encerrado',
+        description: 'O status foi alterado para encerrado.',
+      })
     } catch (err) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao encerrar.' })
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Erro ao encerrar o parcelamento.',
+      })
     }
   }
-
-  const missing = Number(formData.quantidade_parcelas || 0) - Number(formData.parcela_atual || 0)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -142,7 +175,7 @@ export default function InstallmentDetail() {
             variant="outline"
             size="icon"
             onClick={() => navigate('/dashboard')}
-            className="shrink-0 bg-white"
+            className="bg-white shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -163,7 +196,13 @@ export default function InstallmentDetail() {
                   <CheckCircle className="w-4 h-4 mr-2" /> Encerrar
                 </Button>
               )}
-              <Button onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none">
+              <Button
+                onClick={() => {
+                  setFormData(installment)
+                  setIsEditing(true)
+                }}
+                className="flex-1 sm:flex-none"
+              >
                 <Edit className="w-4 h-4 mr-2" /> Editar
               </Button>
             </>
@@ -173,7 +212,7 @@ export default function InstallmentDetail() {
                 variant="outline"
                 onClick={() => {
                   setIsEditing(false)
-                  setFormData(installment)
+                  setFieldErrors({})
                 }}
                 className="flex-1 sm:flex-none"
               >
@@ -191,7 +230,7 @@ export default function InstallmentDetail() {
         <span className="text-sm font-medium text-slate-600">Status atual:</span>
         <Badge
           variant={installment.status === 'Encerrado' ? 'secondary' : 'default'}
-          className="bg-slate-100 text-slate-800 hover:bg-slate-200 shadow-none"
+          className="shadow-none"
         >
           {installment.status}
         </Badge>
@@ -205,7 +244,7 @@ export default function InstallmentDetail() {
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-2 gap-y-6 gap-x-4">
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Nome da Empresa" value={installment.empresa_nome} />
+                <ViewField label="Empresa" value={installment.empresa_nome} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <ViewField label="CNPJ" value={installment.cnpj} />
@@ -214,7 +253,7 @@ export default function InstallmentDetail() {
                 <ViewField label="Órgão" value={installment.orgao} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Número do Processo" value={installment.numero_processo} />
+                <ViewField label="Processo" value={installment.numero_processo} />
               </div>
             </CardContent>
           </Card>
@@ -225,16 +264,23 @@ export default function InstallmentDetail() {
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-2 gap-y-6 gap-x-4">
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Data de Adesão" value={installment.data_adesao} />
+                <ViewField label="Adesão" value={installment.data_adesao} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Quantidade de Parcelas" value={installment.quantidade_parcelas} />
+                <ViewField label="Parcelas" value={installment.quantidade_parcelas} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Parcela Atual" value={installment.parcela_atual} />
+                <ViewField label="Atual" value={installment.parcela_atual} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Parcelas Faltando" value={Math.max(0, missing)} />
+                <ViewField
+                  label="Faltando"
+                  value={Math.max(
+                    0,
+                    Number(installment.quantidade_parcelas || 0) -
+                      Number(installment.parcela_atual || 0),
+                  )}
+                />
               </div>
             </CardContent>
           </Card>
@@ -281,29 +327,32 @@ export default function InstallmentDetail() {
             <CardTitle className="text-lg text-slate-800">Modo de Edição</CardTitle>
           </CardHeader>
           <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Nome da Empresa</Label>
+            <Field label="Nome da Empresa" error={fieldErrors.empresa_nome}>
               <Input
                 value={formData.empresa_nome || ''}
                 onChange={(e) => setFormData({ ...formData, empresa_nome: e.target.value })}
-                className="bg-white"
+                className={cn(
+                  fieldErrors.empresa_nome && 'border-destructive focus-visible:ring-destructive',
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>CNPJ da Empresa</Label>
+            </Field>
+            <Field label="CNPJ da Empresa" error={fieldErrors.cnpj}>
               <Input
                 value={formData.cnpj || ''}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                className="bg-white"
+                className={cn(
+                  fieldErrors.cnpj && 'border-destructive focus-visible:ring-destructive',
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Órgão</Label>
+            </Field>
+            <Field label="Órgão" error={fieldErrors.orgao}>
               <Select
                 value={formData.orgao || ''}
                 onValueChange={(v) => setFormData({ ...formData, orgao: v })}
               >
-                <SelectTrigger className="bg-white">
+                <SelectTrigger
+                  className={cn(fieldErrors.orgao && 'border-destructive focus:ring-destructive')}
+                >
                   <SelectValue placeholder="Selecione o órgão" />
                 </SelectTrigger>
                 <SelectContent>
@@ -314,89 +363,50 @@ export default function InstallmentDetail() {
                   <SelectItem value="Secretaria da Fazenda">Secretaria da Fazenda</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Número do Processo</Label>
+            </Field>
+            <Field label="Número do Processo" error={fieldErrors.numero_processo}>
               <Input
                 value={formData.numero_processo || ''}
                 onChange={(e) => setFormData({ ...formData, numero_processo: e.target.value })}
-                className="bg-white"
+                className={cn(fieldErrors.numero_processo && 'border-destructive')}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Data de Adesão</Label>
+            </Field>
+            <Field label="Data de Adesão" error={fieldErrors.data_adesao}>
               <Input
                 type="date"
                 value={formData.data_adesao || ''}
                 onChange={(e) => setFormData({ ...formData, data_adesao: e.target.value })}
-                className="bg-white"
+                className={cn(fieldErrors.data_adesao && 'border-destructive')}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Quantidade de Parcelas</Label>
+            </Field>
+            <Field label="Quantidade de Parcelas" error={fieldErrors.quantidade_parcelas}>
               <Input
                 type="number"
                 value={formData.quantidade_parcelas || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, quantidade_parcelas: Number(e.target.value) })
                 }
-                className="bg-white"
+                className={cn(fieldErrors.quantidade_parcelas && 'border-destructive')}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Parcela Atual</Label>
+            </Field>
+            <Field label="Parcela Atual" error={fieldErrors.parcela_atual}>
               <Input
                 type="number"
                 value={formData.parcela_atual || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, parcela_atual: Number(e.target.value) })
                 }
-                className="bg-white"
+                className={cn(fieldErrors.parcela_atual && 'border-destructive')}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Parcelas Faltando</Label>
-              <Input
-                value={Math.max(0, missing)}
-                disabled
-                className="bg-slate-50 font-medium text-slate-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Site do Parcelamento</Label>
-              <Input
-                value={formData.site_url || ''}
-                onChange={(e) => setFormData({ ...formData, site_url: e.target.value })}
-                className="bg-white"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2 lg:col-span-1">
-              <Label>Senha de Acesso</Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.senha_acesso || ''}
-                  onChange={(e) => setFormData({ ...formData, senha_acesso: e.target.value })}
-                  className="pr-10 bg-white"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-9 w-9 text-slate-400 hover:text-slate-600"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
+            </Field>
+            <Field label="Status" error={fieldErrors.status}>
               <Select
                 value={formData.status || ''}
                 onValueChange={(v) => setFormData({ ...formData, status: v })}
               >
-                <SelectTrigger className="bg-white">
+                <SelectTrigger
+                  className={cn(fieldErrors.status && 'border-destructive focus:ring-destructive')}
+                >
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -406,7 +416,33 @@ export default function InstallmentDetail() {
                   <SelectItem value="Pendente">Pendente</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
+            <Field label="Site do Parcelamento" error={fieldErrors.site_url}>
+              <Input
+                value={formData.site_url || ''}
+                onChange={(e) => setFormData({ ...formData, site_url: e.target.value })}
+                className={cn(fieldErrors.site_url && 'border-destructive')}
+              />
+            </Field>
+            <Field label="Senha de Acesso" error={fieldErrors.senha_acesso}>
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.senha_acesso || ''}
+                  onChange={(e) => setFormData({ ...formData, senha_acesso: e.target.value })}
+                  className={cn('pr-10', fieldErrors.senha_acesso && 'border-destructive')}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-9 w-9 text-slate-400"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
+            </Field>
           </CardContent>
         </Card>
       )}
@@ -435,6 +471,7 @@ export default function InstallmentDetail() {
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
                         <th className="py-3 px-4 font-semibold text-slate-700">Data</th>
+                        <th className="py-3 px-4 font-semibold text-slate-700">Usuário</th>
                         <th className="py-3 px-4 font-semibold text-slate-700">Campo Alterado</th>
                         <th className="py-3 px-4 font-semibold text-slate-700">Valor Anterior</th>
                         <th className="py-3 px-4 font-semibold text-slate-700">Novo Valor</th>
@@ -447,12 +484,15 @@ export default function InstallmentDetail() {
                             {new Date(log.created).toLocaleString('pt-BR')}
                           </td>
                           <td className="py-3 px-4 font-medium text-slate-700">
+                            {log.expand?.usuario_id?.name || 'Usuário'}
+                          </td>
+                          <td className="py-3 px-4 font-medium text-slate-700">
                             {log.campo_alterado}
                           </td>
                           <td className="py-3 px-4 text-slate-400 line-through">
                             {log.valor_anterior}
                           </td>
-                          <td className="py-3 px-4 text-emerald-600 font-medium flex items-center gap-1.5">
+                          <td className="py-3 px-4 text-emerald-600 font-medium">
                             {log.valor_novo}
                           </td>
                         </tr>
