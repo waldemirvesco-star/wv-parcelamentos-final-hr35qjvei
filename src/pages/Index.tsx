@@ -33,7 +33,7 @@ export default function Index() {
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
           <p className="text-slate-500 mt-1">Visão geral dos processos e tributos da empresa.</p>
         </div>
-        <Link to="/novo">
+        <Link to="/novo-parcelamento">
           <Button className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all hover:shadow">
             <Plus className="mr-2 h-4 w-4" />
             Novo Parcelamento

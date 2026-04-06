@@ -17,7 +17,7 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
-            <Route path="/novo" element={<CreateInstallment />} />
+            <Route path="/novo-parcelamento" element={<CreateInstallment />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
