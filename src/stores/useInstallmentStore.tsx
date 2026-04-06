@@ -2,6 +2,14 @@ import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 export type Status = 'Ativo' | 'Encerrado' | 'Enviado' | 'Pendente'
 
+export interface HistoryLog {
+  id: string
+  data: string
+  campo: string
+  valorAnterior: string
+  novoValor: string
+}
+
 export interface Installment {
   id: string
   cnpj: string
@@ -12,6 +20,11 @@ export interface Installment {
   status: Status
   valorTotal: number
   dataInicio: string
+  numeroProcesso?: string
+  metodoEnvio?: string
+  site?: string
+  senha?: string
+  historico?: HistoryLog[]
 }
 
 const initialData: Installment[] = [
@@ -25,6 +38,19 @@ const initialData: Installment[] = [
     status: 'Ativo',
     valorTotal: 150000,
     dataInicio: '2023-01-15',
+    numeroProcesso: '12345.678901/2023-12',
+    metodoEnvio: 'Portal e-CAC',
+    site: 'https://cav.receita.fazenda.gov.br',
+    senha: 'senha-super-secreta',
+    historico: [
+      {
+        id: 'h1',
+        data: '2023-06-10T10:00:00Z',
+        campo: 'Parcela Atual',
+        valorAnterior: '11',
+        novoValor: '12',
+      },
+    ],
   },
   {
     id: '2',
@@ -86,6 +112,7 @@ const initialData: Installment[] = [
 interface InstallmentContextData {
   installments: Installment[]
   addInstallment: (installment: Omit<Installment, 'id'>) => void
+  updateInstallment: (id: string, data: Partial<Installment>, log?: Omit<HistoryLog, 'id'>) => void
   removeInstallment: (id: string) => void
 }
 
@@ -99,12 +126,36 @@ export const InstallmentProvider = ({ children }: { children: ReactNode }) => {
     setInstallments((prev) => [newInstallment, ...prev])
   }
 
+  const updateInstallment = (
+    id: string,
+    data: Partial<Installment>,
+    log?: Omit<HistoryLog, 'id'>,
+  ) => {
+    setInstallments((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const updated = { ...item, ...data }
+          if (log) {
+            updated.historico = [
+              { ...log, id: Math.random().toString(36).substr(2, 9) },
+              ...(item.historico || []),
+            ]
+          }
+          return updated
+        }
+        return item
+      }),
+    )
+  }
+
   const removeInstallment = (id: string) => {
     setInstallments((prev) => prev.filter((item) => item.id !== id))
   }
 
   return (
-    <InstallmentContext.Provider value={{ installments, addInstallment, removeInstallment }}>
+    <InstallmentContext.Provider
+      value={{ installments, addInstallment, updateInstallment, removeInstallment }}
+    >
       {children}
     </InstallmentContext.Provider>
   )

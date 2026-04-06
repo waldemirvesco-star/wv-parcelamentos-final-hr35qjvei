@@ -4,6 +4,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
 import CreateInstallment from './pages/CreateInstallment'
+import InstallmentDetail from './pages/InstallmentDetail'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { InstallmentProvider } from '@/stores/useInstallmentStore'
@@ -18,6 +19,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/novo-parcelamento" element={<CreateInstallment />} />
+            <Route path="/parcelamento/:id" element={<InstallmentDetail />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

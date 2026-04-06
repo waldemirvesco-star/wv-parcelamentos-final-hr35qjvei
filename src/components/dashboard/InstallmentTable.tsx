@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Table,
   TableBody,
@@ -53,6 +54,7 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
   const [statusFilter, setStatusFilter] = useState<string>('Todos')
   const [page, setPage] = useState(1)
   const { toast } = useToast()
+  const navigate = useNavigate()
   const ITEMS_PER_PAGE = 5
 
   const filteredData = useMemo(() => {
@@ -68,8 +70,12 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE)
   const paginatedData = filteredData.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
-  const handleAction = (action: string) => {
-    toast({ title: action, description: `Ação "${action}" selecionada (Mock).` })
+  const handleAction = (action: string, id: string) => {
+    if (action === 'Ver Detalhes' || action === 'Editar') {
+      navigate(`/parcelamento/${id}${action === 'Editar' ? '?edit=true' : ''}`)
+    } else {
+      toast({ title: action, description: `Ação "${action}" selecionada (Mock).` })
+    }
   }
 
   return (
@@ -157,10 +163,10 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-[160px]">
-                        <DropdownMenuItem onClick={() => handleAction('Ver Detalhes')}>
+                        <DropdownMenuItem onClick={() => handleAction('Ver Detalhes', item.id)}>
                           <Eye className="mr-2 h-4 w-4" /> Ver Detalhes
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAction('Editar')}>
+                        <DropdownMenuItem onClick={() => handleAction('Editar', item.id)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
