@@ -42,7 +42,11 @@ export const getAllParcelamentosFiltered = (options?: any) => {
 }
 
 export const createParcelamento = (data: any) => {
-  return pb.collection('parcelamentos').create(data)
+  const payload = { ...data }
+  if (!payload.usuario_id && pb.authStore.record?.id) {
+    payload.usuario_id = pb.authStore.record.id
+  }
+  return pb.collection('parcelamentos').create(payload)
 }
 
 export const updateParcelamento = (id: string, data: any) => {

@@ -24,6 +24,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 import { createParcelamento, getParcelamentoByCnpj } from '@/services/parcelamentos'
 import { createHistorico } from '@/services/historico'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
@@ -51,6 +52,7 @@ type FormValues = z.infer<typeof formSchema>
 export default function CreateInstallment() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -100,10 +102,12 @@ export default function CreateInstallment() {
         senha_acesso: values.senhaAcesso,
         metodo_envio: values.metodoEnvio,
         status: 'Pendente',
+        usuario_id: user?.id,
       })
 
       await createHistorico({
         parcelamento_id: parcelamento.id,
+        usuario_id: user?.id,
         campo_alterado: 'Criação',
         valor_anterior: '',
         valor_novo: 'Registro inicial criado',
