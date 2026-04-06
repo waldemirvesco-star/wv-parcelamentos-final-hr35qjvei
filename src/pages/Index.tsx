@@ -1,14 +1,33 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { CheckCircle, Archive, Send, AlertCircle, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { InstallmentTable } from '@/components/dashboard/InstallmentTable'
-import useInstallmentStore from '@/stores/useInstallmentStore'
 import { useToast } from '@/hooks/use-toast'
+import { getParcelamentos, deleteParcelamento } from '@/services/parcelamentos'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Index() {
-  const { installments, removeInstallment } = useInstallmentStore()
+  const [installments, setInstallments] = useState<any[]>([])
   const { toast } = useToast()
+
+  const loadData = async () => {
+    try {
+      const data = await getParcelamentos()
+      setInstallments(data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  useRealtime('parcelamentos', () => {
+    loadData()
+  })
 
   const stats = {
     ativos: installments.filter((i) => i.status === 'Ativo').length,
@@ -17,13 +36,21 @@ export default function Index() {
     pendentes: installments.filter((i) => i.status === 'Pendente').length,
   }
 
-  const handleDelete = (id: string) => {
-    removeInstallment(id)
-    toast({
-      title: 'Parcelamento excluído',
-      description: 'O registro foi removido com sucesso.',
-      variant: 'default',
-    })
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteParcelamento(id)
+      toast({
+        title: 'Parcelamento excluído',
+        description: 'O registro foi removido com sucesso.',
+        variant: 'default',
+      })
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o registro.',
+        variant: 'destructive',
+      })
+    }
   }
 
   return (

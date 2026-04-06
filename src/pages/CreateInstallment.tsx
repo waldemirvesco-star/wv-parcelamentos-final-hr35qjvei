@@ -23,8 +23,9 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import useInstallmentStore from '@/stores/useInstallmentStore'
 import { useToast } from '@/hooks/use-toast'
+import { createParcelamento } from '@/services/parcelamentos'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 
 const formSchema = z.object({
   dataAdesao: z.string().min(1, 'A data de adesão é obrigatória'),
@@ -48,9 +49,9 @@ type FormValues = z.infer<typeof formSchema>
 
 export default function CreateInstallment() {
   const navigate = useNavigate()
-  const { addInstallment } = useInstallmentStore()
   const { toast } = useToast()
   const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -72,25 +73,43 @@ export default function CreateInstallment() {
   const parcelaAtual = form.watch('parcelaAtual') || 0
   const parcelasFaltando = Math.max(0, quantidadeParcelas - parcelaAtual)
 
-  const onSubmit = (values: FormValues) => {
-    // Calling store update masking as generic expected format for backwards compatibility
-    // with table in index page, but saving all new fields
-    addInstallment({
-      ...values,
-      empresa: values.nomeEmpresa,
-      dataInicio: values.dataAdesao,
-      parcelasTotais: values.quantidadeParcelas,
-      valorTotal: 0,
-      status: 'Pendente',
-      parcelasAtuais: values.parcelaAtual,
-    } as any)
+  const onSubmit = async (values: FormValues) => {
+    setIsSubmitting(true)
+    try {
+      await createParcelamento({
+        cnpj: values.cnpj,
+        empresa_nome: values.nomeEmpresa,
+        orgao: values.orgao,
+        data_adesao: values.dataAdesao,
+        quantidade_parcelas: values.quantidadeParcelas,
+        parcela_atual: values.parcelaAtual,
+        numero_processo: values.numeroProcesso,
+        site_url: values.siteParcelamento,
+        senha_acesso: values.senhaAcesso,
+        metodo_envio: values.metodoEnvio,
+        status: 'Pendente',
+      })
 
-    toast({
-      title: 'Sucesso',
-      description: 'Novo parcelamento criado com sucesso.',
-    })
+      toast({
+        title: 'Sucesso',
+        description: 'Novo parcelamento criado com sucesso.',
+      })
 
-    navigate('/')
+      navigate('/dashboard')
+    } catch (err) {
+      const fieldErrors = extractFieldErrors(err)
+      Object.keys(fieldErrors).forEach((field) => {
+        form.setError(field as any, { message: fieldErrors[field] })
+      })
+
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: getErrorMessage(err),
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const metodosEnvioOptions = ['Email', 'WhatsApp']
@@ -99,7 +118,7 @@ export default function CreateInstallment() {
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       <Button
         variant="ghost"
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/dashboard')}
         className="text-slate-500 hover:text-slate-800 px-0 mb-4"
       >
         <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para o Dashboard
@@ -240,6 +259,10 @@ export default function CreateInstallment() {
                           <SelectItem value="Receita Federal">Receita Federal</SelectItem>
                           <SelectItem value="Estado SP">Estado SP</SelectItem>
                           <SelectItem value="Prefeitura">Prefeitura</SelectItem>
+                          <SelectItem value="PGFN">PGFN</SelectItem>
+                          <SelectItem value="Secretaria da Fazenda">
+                            Secretaria da Fazenda
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -349,13 +372,14 @@ export default function CreateInstallment() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/dashboard')}
                   className="text-slate-600 border-slate-300"
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
+                  disabled={isSubmitting}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white transition-all active:scale-95"
                 >
                   Salvar Parcelamento

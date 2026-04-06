@@ -1,5 +1,5 @@
-import { Link, Outlet, useLocation } from 'react-router-dom'
-import { LayoutDashboard, FileText, PieChart, Settings, Bell, User } from 'lucide-react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, FileText, PieChart, Settings, Bell, User, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Sidebar,
@@ -14,9 +14,10 @@ import {
 } from '@/components/ui/sidebar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Parcelamentos', href: '#', icon: FileText },
   { name: 'Relatórios', href: '#', icon: PieChart },
   { name: 'Configurações', href: '#', icon: Settings },
@@ -41,7 +42,8 @@ function AppSidebar() {
             {navigation.map((item) => {
               const isActive =
                 location.pathname === item.href ||
-                (location.pathname === '/novo' && item.href === '/')
+                (location.pathname.startsWith('/novo') && item.href === '/dashboard') ||
+                (location.pathname.startsWith('/parcelamento') && item.href === '/dashboard')
               return (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton
@@ -70,6 +72,14 @@ function AppSidebar() {
 }
 
 export default function Layout() {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    signOut()
+    navigate('/')
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-slate-50 font-sans">
@@ -88,18 +98,31 @@ export default function Layout() {
                 <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
               </Button>
               <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-              <div className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
+              <div className="flex items-center gap-2 hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
                 <Avatar className="h-8 w-8 border border-slate-200">
-                  <AvatarImage src="https://img.usecurling.com/ppl/thumbnail?gender=female&seed=1" />
+                  <AvatarImage
+                    src={`https://img.usecurling.com/ppl/thumbnail?gender=female&seed=${user?.id}`}
+                  />
                   <AvatarFallback>
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:flex flex-col">
-                  <span className="text-sm font-medium text-slate-700 leading-none">Ana Silva</span>
-                  <span className="text-xs text-slate-500">Admin</span>
+                  <span className="text-sm font-medium text-slate-700 leading-none">
+                    {user?.name || 'Admin'}
+                  </span>
+                  <span className="text-xs text-slate-500">{user?.email}</span>
                 </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                title="Sair"
+                className="text-slate-500"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
           </header>
           <div className="flex-1 p-4 md:p-8 overflow-auto animate-fade-in">

@@ -1,0 +1,217 @@
+{
+  "generatedAt": "2026-04-06T13:45:10.897Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "id = @request.auth.id",
+        "view": "id = @request.auth.id",
+        "create": "",
+        "update": "id = @request.auth.id",
+        "delete": "id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "parcelamentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "empresa_nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "orgao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Receita Federal",
+            "Estado SP",
+            "Prefeitura",
+            "PGFN",
+            "Secretaria da Fazenda"
+          ]
+        },
+        {
+          "name": "data_adesao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quantidade_parcelas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "parcela_atual",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero_processo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "site_url",
+          "type": "url",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "senha_acesso",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metodo_envio",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Encerrado", "Enviado", "Pendente"]
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "historico_alteracoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "parcelamento_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "parcelamentos"
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "campo_alterado",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "valor_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_novo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

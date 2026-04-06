@@ -34,10 +34,9 @@ import {
 } from '@/components/ui/pagination'
 import { Button } from '@/components/ui/button'
 import { Search, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
-import { Installment, Status } from '@/stores/useInstallmentStore'
 import { useToast } from '@/hooks/use-toast'
 
-const statusColors: Record<Status, string> = {
+const statusColors: Record<string, string> = {
   Ativo: 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100',
   Encerrado: 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100',
   Enviado: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100',
@@ -45,7 +44,7 @@ const statusColors: Record<Status, string> = {
 }
 
 interface InstallmentTableProps {
-  data: Installment[]
+  data: any[]
   onDelete: (id: string) => void
 }
 
@@ -59,9 +58,9 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
 
   const filteredData = useMemo(() => {
     return data.filter((item) => {
+      const empresa = item.empresa_nome || ''
       const matchesSearch =
-        item.empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.cnpj.includes(searchTerm)
+        empresa.toLowerCase().includes(searchTerm.toLowerCase()) || item.cnpj.includes(searchTerm)
       const matchesStatus = statusFilter === 'Todos' || item.status === statusFilter
       return matchesSearch && matchesStatus
     })
@@ -136,16 +135,16 @@ export function InstallmentTable({ data, onDelete }: InstallmentTableProps) {
               paginatedData.map((item) => (
                 <TableRow key={item.id} className="hover:bg-slate-50/80 transition-colors">
                   <TableCell className="font-medium text-slate-700">{item.cnpj}</TableCell>
-                  <TableCell>{item.empresa}</TableCell>
+                  <TableCell>{item.empresa_nome}</TableCell>
                   <TableCell className="text-slate-600">{item.orgao}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1.5">
                       <div className="flex justify-between text-xs text-slate-500 font-medium">
-                        <span>{item.parcelasAtuais} pagas</span>
-                        <span>de {item.parcelasTotais}</span>
+                        <span>{item.parcela_atual} pagas</span>
+                        <span>de {item.quantidade_parcelas}</span>
                       </div>
                       <Progress
-                        value={(item.parcelasAtuais / item.parcelasTotais) * 100}
+                        value={(item.parcela_atual / item.quantidade_parcelas) * 100}
                         className="h-1.5"
                       />
                     </div>

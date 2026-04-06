@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,14 +6,22 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
 } from '@/components/ui/accordion'
 import { ArrowLeft, CheckCircle, Edit, Save, X, Eye, EyeOff, History } from 'lucide-react'
-import useInstallmentStore, { Installment } from '@/stores/useInstallmentStore'
 import { useToast } from '@/hooks/use-toast'
+import { getParcelamento, updateParcelamento } from '@/services/parcelamentos'
+import { getHistorico, createHistorico } from '@/services/historico'
 
 const ViewField = ({ label, value }: { label: string; value?: string | number }) => (
   <div>
@@ -26,58 +34,105 @@ export default function InstallmentDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { installments, updateInstallment } = useInstallmentStore()
   const { toast } = useToast()
 
-  const installment = useMemo(() => installments.find((i) => i.id === id), [installments, id])
+  const [installment, setInstallment] = useState<any>(null)
+  const [historyLogs, setHistoryLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true')
-  const [formData, setFormData] = useState<Partial<Installment>>({})
+  const [formData, setFormData] = useState<any>({})
   const [showPassword, setShowPassword] = useState(false)
 
+  const loadData = async () => {
+    if (!id) return
+    try {
+      const data = await getParcelamento(id)
+      setInstallment(data)
+      setFormData(data)
+
+      const history = await getHistorico(id)
+      setHistoryLogs(history)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    if (installment && !isEditing) setFormData(installment)
-  }, [installment, isEditing])
+    loadData()
+  }, [id])
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500">Carregando detalhes...</div>
+  }
 
   if (!installment) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-[50vh]">
         <h2 className="text-xl font-semibold mb-4 text-slate-700">Parcelamento não encontrado</h2>
-        <Button onClick={() => navigate('/')}>Voltar ao Dashboard</Button>
+        <Button onClick={() => navigate('/dashboard')}>Voltar ao Dashboard</Button>
       </div>
     )
   }
 
-  const handleSave = () => {
-    const log =
-      formData.parcelasAtuais !== installment.parcelasAtuais
-        ? {
-            data: new Date().toISOString(),
-            campo: 'Parcela Atual',
-            valorAnterior: String(installment.parcelasAtuais || '0'),
-            novoValor: String(formData.parcelasAtuais || '0'),
-          }
-        : undefined
+  const handleSave = async () => {
+    try {
+      const changedKeys = Object.keys(formData).filter((key) => {
+        const v1 = JSON.stringify(formData[key])
+        const v2 = JSON.stringify(installment[key])
+        return v1 !== v2
+      })
 
-    updateInstallment(installment.id, formData, log)
-    setIsEditing(false)
-    toast({ title: 'Alterações salvas', description: 'O parcelamento foi atualizado com sucesso.' })
+      for (const key of changedKeys) {
+        if (
+          [
+            'id',
+            'created',
+            'updated',
+            'usuario_id',
+            'collectionId',
+            'collectionName',
+            'expand',
+          ].includes(key)
+        )
+          continue
+
+        await createHistorico({
+          parcelamento_id: installment.id,
+          campo_alterado: key,
+          valor_anterior: JSON.stringify(installment[key] || ''),
+          valor_novo: JSON.stringify(formData[key] || ''),
+        })
+      }
+
+      await updateParcelamento(installment.id, formData)
+      setIsEditing(false)
+      toast({ title: 'Alterações salvas', description: 'O parcelamento foi atualizado.' })
+      loadData()
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao salvar alterações.' })
+    }
   }
 
-  const handleClose = () => {
-    updateInstallment(
-      installment.id,
-      { status: 'Encerrado' },
-      {
-        data: new Date().toISOString(),
-        campo: 'Status',
-        valorAnterior: installment.status,
-        novoValor: 'Encerrado',
-      },
-    )
-    toast({ title: 'Parcelamento Encerrado', description: 'O status foi alterado para Encerrado.' })
+  const handleClose = async () => {
+    try {
+      await createHistorico({
+        parcelamento_id: installment.id,
+        campo_alterado: 'status',
+        valor_anterior: installment.status,
+        valor_novo: 'Encerrado',
+      })
+      await updateParcelamento(installment.id, { status: 'Encerrado' })
+      toast({ title: 'Parcelamento Encerrado', description: 'O status foi alterado.' })
+      loadData()
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Erro ao encerrar.' })
+    }
   }
 
-  const missing = Number(formData.parcelasTotais || 0) - Number(formData.parcelasAtuais || 0)
+  const missing = Number(formData.quantidade_parcelas || 0) - Number(formData.parcela_atual || 0)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -86,7 +141,7 @@ export default function InstallmentDetail() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="shrink-0 bg-white"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -133,7 +188,7 @@ export default function InstallmentDetail() {
       </div>
 
       <div className="flex gap-3 items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-        <span className="text-sm font-medium text-slate-600">Status atual do parcelamento:</span>
+        <span className="text-sm font-medium text-slate-600">Status atual:</span>
         <Badge
           variant={installment.status === 'Encerrado' ? 'secondary' : 'default'}
           className="bg-slate-100 text-slate-800 hover:bg-slate-200 shadow-none"
@@ -150,7 +205,7 @@ export default function InstallmentDetail() {
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-2 gap-y-6 gap-x-4">
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Nome da Empresa" value={installment.empresa} />
+                <ViewField label="Nome da Empresa" value={installment.empresa_nome} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <ViewField label="CNPJ" value={installment.cnpj} />
@@ -159,7 +214,7 @@ export default function InstallmentDetail() {
                 <ViewField label="Órgão" value={installment.orgao} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Número do Processo" value={installment.numeroProcesso} />
+                <ViewField label="Número do Processo" value={installment.numero_processo} />
               </div>
             </CardContent>
           </Card>
@@ -170,20 +225,13 @@ export default function InstallmentDetail() {
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-2 gap-y-6 gap-x-4">
               <div className="col-span-2 sm:col-span-1">
-                <ViewField
-                  label="Data de Adesão"
-                  value={
-                    installment.dataInicio
-                      ? new Date(installment.dataInicio).toLocaleDateString('pt-BR')
-                      : undefined
-                  }
-                />
+                <ViewField label="Data de Adesão" value={installment.data_adesao} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Quantidade de Parcelas" value={installment.parcelasTotais} />
+                <ViewField label="Quantidade de Parcelas" value={installment.quantidade_parcelas} />
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Parcela Atual" value={installment.parcelasAtuais} />
+                <ViewField label="Parcela Atual" value={installment.parcela_atual} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <ViewField label="Parcelas Faltando" value={Math.max(0, missing)} />
@@ -196,15 +244,19 @@ export default function InstallmentDetail() {
               <CardTitle className="text-lg text-slate-800">Acesso e Envio</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <ViewField label="Método de Envio" value={installment.metodoEnvio} />
-              <ViewField label="Site do Parcelamento" value={installment.site} />
+              <ViewField label="Método de Envio" value={installment.metodo_envio?.join(', ')} />
+              <ViewField label="Site do Parcelamento" value={installment.site_url} />
               <div>
                 <p className="text-sm font-medium text-slate-500">Senha de Acesso</p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-base text-slate-900 font-medium">
-                    {showPassword ? installment.senha : installment.senha ? '••••••••' : '-'}
+                    {showPassword
+                      ? installment.senha_acesso
+                      : installment.senha_acesso
+                        ? '••••••••'
+                        : '-'}
                   </span>
-                  {installment.senha && (
+                  {installment.senha_acesso && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -232,8 +284,8 @@ export default function InstallmentDetail() {
             <div className="space-y-2">
               <Label>Nome da Empresa</Label>
               <Input
-                value={formData.empresa || ''}
-                onChange={(e) => setFormData({ ...formData, empresa: e.target.value })}
+                value={formData.empresa_nome || ''}
+                onChange={(e) => setFormData({ ...formData, empresa_nome: e.target.value })}
                 className="bg-white"
               />
             </div>
@@ -247,17 +299,27 @@ export default function InstallmentDetail() {
             </div>
             <div className="space-y-2">
               <Label>Órgão</Label>
-              <Input
+              <Select
                 value={formData.orgao || ''}
-                onChange={(e) => setFormData({ ...formData, orgao: e.target.value })}
-                className="bg-white"
-              />
+                onValueChange={(v) => setFormData({ ...formData, orgao: v })}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Selecione o órgão" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Receita Federal">Receita Federal</SelectItem>
+                  <SelectItem value="Estado SP">Estado SP</SelectItem>
+                  <SelectItem value="Prefeitura">Prefeitura</SelectItem>
+                  <SelectItem value="PGFN">PGFN</SelectItem>
+                  <SelectItem value="Secretaria da Fazenda">Secretaria da Fazenda</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Número do Processo</Label>
               <Input
-                value={formData.numeroProcesso || ''}
-                onChange={(e) => setFormData({ ...formData, numeroProcesso: e.target.value })}
+                value={formData.numero_processo || ''}
+                onChange={(e) => setFormData({ ...formData, numero_processo: e.target.value })}
                 className="bg-white"
               />
             </div>
@@ -265,8 +327,8 @@ export default function InstallmentDetail() {
               <Label>Data de Adesão</Label>
               <Input
                 type="date"
-                value={formData.dataInicio || ''}
-                onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
+                value={formData.data_adesao || ''}
+                onChange={(e) => setFormData({ ...formData, data_adesao: e.target.value })}
                 className="bg-white"
               />
             </div>
@@ -274,9 +336,9 @@ export default function InstallmentDetail() {
               <Label>Quantidade de Parcelas</Label>
               <Input
                 type="number"
-                value={formData.parcelasTotais || ''}
+                value={formData.quantidade_parcelas || ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, parcelasTotais: Number(e.target.value) })
+                  setFormData({ ...formData, quantidade_parcelas: Number(e.target.value) })
                 }
                 className="bg-white"
               />
@@ -285,9 +347,9 @@ export default function InstallmentDetail() {
               <Label>Parcela Atual</Label>
               <Input
                 type="number"
-                value={formData.parcelasAtuais || ''}
+                value={formData.parcela_atual || ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, parcelasAtuais: Number(e.target.value) })
+                  setFormData({ ...formData, parcela_atual: Number(e.target.value) })
                 }
                 className="bg-white"
               />
@@ -301,18 +363,10 @@ export default function InstallmentDetail() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Método de Envio</Label>
-              <Input
-                value={formData.metodoEnvio || ''}
-                onChange={(e) => setFormData({ ...formData, metodoEnvio: e.target.value })}
-                className="bg-white"
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Site do Parcelamento</Label>
               <Input
-                value={formData.site || ''}
-                onChange={(e) => setFormData({ ...formData, site: e.target.value })}
+                value={formData.site_url || ''}
+                onChange={(e) => setFormData({ ...formData, site_url: e.target.value })}
                 className="bg-white"
               />
             </div>
@@ -321,8 +375,8 @@ export default function InstallmentDetail() {
               <div className="relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  value={formData.senha || ''}
-                  onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                  value={formData.senha_acesso || ''}
+                  onChange={(e) => setFormData({ ...formData, senha_acesso: e.target.value })}
                   className="pr-10 bg-white"
                 />
                 <Button
@@ -335,6 +389,23 @@ export default function InstallmentDetail() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select
+                value={formData.status || ''}
+                onValueChange={(v) => setFormData({ ...formData, status: v })}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Encerrado">Encerrado</SelectItem>
+                  <SelectItem value="Enviado">Enviado</SelectItem>
+                  <SelectItem value="Pendente">Pendente</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -354,7 +425,7 @@ export default function InstallmentDetail() {
           </AccordionTrigger>
           <AccordionContent className="px-0 pb-0 pt-0">
             <div className="border-t border-slate-100 p-6">
-              {!installment.historico || installment.historico.length === 0 ? (
+              {historyLogs.length === 0 ? (
                 <p className="text-slate-500 text-sm py-4 text-center">
                   Nenhuma alteração registrada até o momento.
                 </p>
@@ -370,17 +441,19 @@ export default function InstallmentDetail() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {installment.historico.map((log) => (
+                      {historyLogs.map((log) => (
                         <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="py-3 px-4 text-slate-500">
-                            {new Date(log.data).toLocaleString('pt-BR')}
+                            {new Date(log.created).toLocaleString('pt-BR')}
                           </td>
-                          <td className="py-3 px-4 font-medium text-slate-700">{log.campo}</td>
+                          <td className="py-3 px-4 font-medium text-slate-700">
+                            {log.campo_alterado}
+                          </td>
                           <td className="py-3 px-4 text-slate-400 line-through">
-                            {log.valorAnterior}
+                            {log.valor_anterior}
                           </td>
                           <td className="py-3 px-4 text-emerald-600 font-medium flex items-center gap-1.5">
-                            {log.novoValor}
+                            {log.valor_novo}
                           </td>
                         </tr>
                       ))}
