@@ -47,6 +47,14 @@ export const getParcelamentosStats = async () => {
 
 export const getParcelamento = (id: string) => pb.collection('parcelamentos').getOne(id)
 
+export const getParcelamentoByCnpj = async (cnpj: string) => {
+  try {
+    return await pb.collection('parcelamentos').getFirstListItem(`cnpj = "${cnpj}"`)
+  } catch (err) {
+    return null
+  }
+}
+
 export const createParcelamento = (data: any) =>
   pb.collection('parcelamentos').create({ ...data, usuario_id: pb.authStore.record?.id })
 

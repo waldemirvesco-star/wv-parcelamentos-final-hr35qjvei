@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,7 +24,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { createParcelamento } from '@/services/parcelamentos'
+import { createParcelamento, getParcelamentoByCnpj } from '@/services/parcelamentos'
+import { createHistorico } from '@/services/historico'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
 
 const formSchema = z.object({
@@ -32,7 +33,7 @@ const formSchema = z.object({
   quantidadeParcelas: z.coerce.number().min(1, 'Deve ter pelo menos 1 parcela'),
   parcelaAtual: z.coerce.number().min(0, 'A parcela atual não pode ser negativa'),
   numeroProcesso: z.string().min(1, 'O número do processo é obrigatório'),
-  cnpj: z.string().min(14, 'O CNPJ deve ter no mínimo 14 caracteres'),
+  cnpj: z.string().regex(/^\d{14}$/, 'O CNPJ deve ter exatamente 14 números (apenas dígitos)'),
   nomeEmpresa: z.string().min(3, 'O nome da empresa é obrigatório'),
   orgao: z.string().min(1, 'Selecione um órgão'),
   metodoEnvio: z.array(z.string()).refine((val) => val.length > 0, {
@@ -72,11 +73,22 @@ export default function CreateInstallment() {
   const quantidadeParcelas = form.watch('quantidadeParcelas') || 0
   const parcelaAtual = form.watch('parcelaAtual') || 0
   const parcelasFaltando = Math.max(0, quantidadeParcelas - parcelaAtual)
+  const cnpjValue = form.watch('cnpj')
+
+  useEffect(() => {
+    if (cnpjValue && /^\d{14}$/.test(cnpjValue)) {
+      getParcelamentoByCnpj(cnpjValue).then((result) => {
+        if (result && result.empresa_nome) {
+          form.setValue('nomeEmpresa', result.empresa_nome, { shouldValidate: true })
+        }
+      })
+    }
+  }, [cnpjValue, form])
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
     try {
-      await createParcelamento({
+      const parcelamento = await createParcelamento({
         cnpj: values.cnpj,
         empresa_nome: values.nomeEmpresa,
         orgao: values.orgao,
@@ -90,12 +102,19 @@ export default function CreateInstallment() {
         status: 'Pendente',
       })
 
+      await createHistorico({
+        parcelamento_id: parcelamento.id,
+        campo_alterado: 'Criação',
+        valor_anterior: '',
+        valor_novo: 'Registro inicial criado',
+      })
+
       toast({
         title: 'Sucesso',
         description: 'Novo parcelamento criado com sucesso.',
       })
 
-      navigate('/dashboard')
+      navigate(`/parcelamento/${parcelamento.id}`)
     } catch (err) {
       const fieldErrors = extractFieldErrors(err)
       Object.keys(fieldErrors).forEach((field) => {
@@ -215,7 +234,8 @@ export default function CreateInstallment() {
                       <FormLabel className="text-slate-700">CNPJ da Empresa</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="00.000.000/0001-00"
+                          placeholder="Somente os 14 números"
+                          maxLength={14}
                           className="bg-slate-50/50"
                           {...field}
                         />
