@@ -11,12 +11,14 @@ import {
   getParcelamentosStats,
   deleteParcelamento,
   getAllParcelamentosFiltered,
+  getDistributionByOrgao,
 } from '@/services/parcelamentos'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Index() {
   const [installments, setInstallments] = useState<any[]>([])
   const [stats, setStats] = useState({ ativos: 0, encerrados: 0, enviados: 0, pendentes: 0 })
+  const [distribution, setDistribution] = useState<{ orgao: string; value: number }[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalRecords, setTotalRecords] = useState(0)
@@ -44,7 +46,7 @@ export default function Index() {
 
   const loadData = useCallback(async () => {
     try {
-      const [paginatedData, statsData] = await Promise.all([
+      const [paginatedData, statsData, distData] = await Promise.all([
         getParcelamentosPaginated(
           page,
           ITEMS_PER_PAGE,
@@ -63,11 +65,13 @@ export default function Index() {
           dateEnd,
           statusFilter,
         ),
+        getDistributionByOrgao(),
       ])
       setInstallments(paginatedData.items)
       setTotalPages(paginatedData.totalPages)
       setTotalRecords(paginatedData.totalItems)
       setStats(statsData)
+      setDistribution(distData)
     } catch (err) {
       console.error(err)
       toast({
@@ -196,7 +200,7 @@ export default function Index() {
           />
         </div>
         <div className="lg:col-span-1">
-          <DistributionChart />
+          <DistributionChart data={distribution} />
         </div>
       </div>
 

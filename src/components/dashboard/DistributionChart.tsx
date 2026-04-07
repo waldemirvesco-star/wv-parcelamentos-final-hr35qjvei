@@ -8,24 +8,17 @@ import {
 } from '@/components/ui/chart'
 import { PieChart, Pie, Cell } from 'recharts'
 
-const mockData = [
-  { orgao: 'Receita Federal', value: 45 },
-  { orgao: 'Estado SP', value: 25 },
-  { orgao: 'Prefeitura', value: 15 },
-  { orgao: 'PGFN', value: 10 },
-  { orgao: 'Sec. Fazenda', value: 5 },
-]
-
 const chartConfig = {
   'Receita Federal': { label: 'Receita Federal', color: 'hsl(var(--chart-1))' },
   'Estado SP': { label: 'Estado SP', color: 'hsl(var(--chart-2))' },
   Prefeitura: { label: 'Prefeitura', color: 'hsl(var(--chart-3))' },
   PGFN: { label: 'PGFN', color: 'hsl(var(--chart-4))' },
-  'Sec. Fazenda': { label: 'Sec. da Fazenda', color: 'hsl(var(--chart-5))' },
+  'Secretaria da Fazenda': { label: 'Sec. da Fazenda', color: 'hsl(var(--chart-5))' },
+  Outros: { label: 'Outros', color: 'hsl(var(--chart-1))' },
 }
 
-export function DistributionChart() {
-  const dataWithColors = mockData.map((d) => ({
+export function DistributionChart({ data = [] }: { data?: { orgao: string; value: number }[] }) {
+  const dataWithColors = data.map((d) => ({
     ...d,
     fill: chartConfig[d.orgao as keyof typeof chartConfig]?.color || 'hsl(var(--chart-1))',
   }))
@@ -39,27 +32,34 @@ export function DistributionChart() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-4 flex flex-col items-center justify-center">
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square w-full max-w-[220px]">
-          <PieChart>
-            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-            <Pie
-              data={dataWithColors}
-              dataKey="value"
-              nameKey="orgao"
-              innerRadius={50}
-              strokeWidth={2}
-              paddingAngle={2}
-            >
-              {dataWithColors.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Pie>
-            <ChartLegend
-              className="mt-2 text-xs flex-wrap justify-center gap-2"
-              content={<ChartLegendContent />}
-            />
-          </PieChart>
-        </ChartContainer>
+        {data.length === 0 ? (
+          <p className="text-sm text-slate-500">Sem dados para exibir.</p>
+        ) : (
+          <ChartContainer
+            config={chartConfig}
+            className="mx-auto aspect-square w-full max-w-[220px]"
+          >
+            <PieChart>
+              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+              <Pie
+                data={dataWithColors}
+                dataKey="value"
+                nameKey="orgao"
+                innerRadius={50}
+                strokeWidth={2}
+                paddingAngle={2}
+              >
+                {dataWithColors.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <ChartLegend
+                className="mt-2 text-xs flex-wrap justify-center gap-2"
+                content={<ChartLegendContent />}
+              />
+            </PieChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )
