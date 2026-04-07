@@ -1,87 +1,11 @@
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  FileText,
-  PieChart,
-  Settings,
-  Bell,
-  User,
-  LogOut,
-  Users,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/ui/sidebar'
+import { Outlet, useNavigate } from 'react-router-dom'
+import { User, LogOut } from 'lucide-react'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { NotificationCenter } from '@/components/NotificationCenter'
-
-function AppSidebar() {
-  const location = useLocation()
-  const { user } = useAuth()
-
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Parcelamentos', href: '#', icon: FileText },
-    { name: 'Relatórios', href: '#', icon: PieChart },
-    ...(user?.role === 'Admin' ? [{ name: 'Usuários', href: '/admin/users', icon: Users }] : []),
-    { name: 'Configurações', href: '#', icon: Settings },
-  ]
-
-  return (
-    <Sidebar className="border-r border-slate-200 bg-white/50 backdrop-blur-xl">
-      <SidebarHeader className="p-4 border-b border-slate-100 flex items-center justify-center">
-        <div className="flex items-center gap-2 w-full px-2">
-          <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-inner">
-            <FileText className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-lg font-bold text-slate-900 tracking-tight">TaxFlow</span>
-        </div>
-      </SidebarHeader>
-      <SidebarContent className="p-2">
-        <SidebarGroup>
-          <SidebarMenu>
-            {navigation.map((item) => {
-              const isActive =
-                location.pathname === item.href ||
-                (location.pathname.startsWith('/novo') && item.href === '/dashboard') ||
-                (location.pathname.startsWith('/parcelamento') && item.href === '/dashboard')
-              return (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive}
-                    tooltip={item.name}
-                    className={cn(
-                      'mb-1',
-                      isActive &&
-                        'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800',
-                    )}
-                  >
-                    <Link to={item.href} className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
-                      <span className="font-medium">{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
-  )
-}
+import { AppSidebar } from '@/components/app-sidebar'
 
 export default function Layout() {
   const { user, signOut } = useAuth()
