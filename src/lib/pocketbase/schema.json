@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T20:12:01.590Z",
+  "generatedAt": "2026-04-07T20:29:54.704Z",
   "collections": [
     {
       "name": "users",
@@ -136,13 +136,6 @@
           "system": false
         },
         {
-          "name": "status",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Ativo", "Encerrado", "Enviado", "Pendente"]
-        },
-        {
           "name": "usuario_id",
           "type": "relation",
           "required": true,
@@ -162,6 +155,20 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "situacao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Encerrado", "Rompido"]
+        },
+        {
+          "name": "status_envio",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Enviado", "Pendente"]
         }
       ],
       "indexes": []

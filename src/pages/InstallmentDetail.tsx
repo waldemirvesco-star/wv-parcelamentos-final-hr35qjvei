@@ -149,14 +149,14 @@ export default function InstallmentDetail() {
     try {
       await createHistorico({
         parcelamento_id: installment.id,
-        campo_alterado: 'status',
-        valor_anterior: installment.status,
+        campo_alterado: 'situacao',
+        valor_anterior: installment.situacao,
         valor_novo: 'Encerrado',
       })
-      await updateParcelamento(installment.id, { status: 'Encerrado' })
+      await updateParcelamento(installment.id, { situacao: 'Encerrado' })
       toast({
         title: 'Parcelamento Encerrado',
-        description: 'O status foi alterado para encerrado.',
+        description: 'A situação foi alterada para encerrado.',
       })
     } catch (err) {
       toast({
@@ -187,7 +187,7 @@ export default function InstallmentDetail() {
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {!isEditing ? (
             <>
-              {installment.status !== 'Encerrado' && (
+              {installment.situacao !== 'Encerrado' && installment.situacao !== 'Rompido' && (
                 <Button
                   variant="outline"
                   className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 flex-1 sm:flex-none"
@@ -226,14 +226,38 @@ export default function InstallmentDetail() {
         </div>
       </div>
 
-      <div className="flex gap-3 items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-        <span className="text-sm font-medium text-slate-600">Status atual:</span>
-        <Badge
-          variant={installment.status === 'Encerrado' ? 'secondary' : 'default'}
-          className="shadow-none"
-        >
-          {installment.status}
-        </Badge>
+      <div className="flex gap-3 items-center bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-600">Situação:</span>
+          <Badge
+            variant={
+              installment.situacao === 'Encerrado' || installment.situacao === 'Rompido'
+                ? 'secondary'
+                : 'default'
+            }
+            className={cn(
+              'shadow-none',
+              installment.situacao === 'Rompido' && 'bg-red-100 text-red-700 hover:bg-red-100',
+            )}
+          >
+            {installment.situacao || '-'}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2 ml-4">
+          <span className="text-sm font-medium text-slate-600">Status Envio:</span>
+          <Badge
+            variant={installment.status_envio === 'Pendente' ? 'outline' : 'default'}
+            className={cn(
+              'shadow-none',
+              installment.status_envio === 'Enviado' &&
+                'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
+              installment.status_envio === 'Pendente' &&
+                'bg-amber-100 text-amber-700 hover:bg-amber-100 border-transparent',
+            )}
+          >
+            {installment.status_envio || '-'}
+          </Badge>
+        </div>
       </div>
 
       {!isEditing ? (
@@ -399,19 +423,38 @@ export default function InstallmentDetail() {
                 className={cn(fieldErrors.parcela_atual && 'border-destructive')}
               />
             </Field>
-            <Field label="Status" error={fieldErrors.status}>
+            <Field label="Situação" error={fieldErrors.situacao}>
               <Select
-                value={formData.status || ''}
-                onValueChange={(v) => setFormData({ ...formData, status: v })}
+                value={formData.situacao || ''}
+                onValueChange={(v) => setFormData({ ...formData, situacao: v })}
               >
                 <SelectTrigger
-                  className={cn(fieldErrors.status && 'border-destructive focus:ring-destructive')}
+                  className={cn(
+                    fieldErrors.situacao && 'border-destructive focus:ring-destructive',
+                  )}
                 >
-                  <SelectValue placeholder="Selecione o status" />
+                  <SelectValue placeholder="Selecione a situação" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Ativo">Ativo</SelectItem>
                   <SelectItem value="Encerrado">Encerrado</SelectItem>
+                  <SelectItem value="Rompido">Rompido</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Status de Envio" error={fieldErrors.status_envio}>
+              <Select
+                value={formData.status_envio || ''}
+                onValueChange={(v) => setFormData({ ...formData, status_envio: v })}
+              >
+                <SelectTrigger
+                  className={cn(
+                    fieldErrors.status_envio && 'border-destructive focus:ring-destructive',
+                  )}
+                >
+                  <SelectValue placeholder="Selecione o status de envio" />
+                </SelectTrigger>
+                <SelectContent>
                   <SelectItem value="Enviado">Enviado</SelectItem>
                   <SelectItem value="Pendente">Pendente</SelectItem>
                 </SelectContent>

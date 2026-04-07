@@ -45,6 +45,8 @@ const formSchema = z.object({
     .url('Insira uma URL válida (ex: https://...)')
     .min(1, 'O site é obrigatório'),
   senhaAcesso: z.string().min(1, 'A senha é obrigatória'),
+  situacao: z.string().min(1, 'A situação é obrigatória'),
+  statusEnvio: z.string().min(1, 'O status de envio é obrigatório'),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -69,6 +71,8 @@ export default function CreateInstallment() {
       metodoEnvio: [],
       siteParcelamento: '',
       senhaAcesso: '',
+      situacao: 'Ativo',
+      statusEnvio: 'Pendente',
     },
   })
 
@@ -101,7 +105,8 @@ export default function CreateInstallment() {
         site_url: values.siteParcelamento,
         senha_acesso: values.senhaAcesso,
         metodo_envio: values.metodoEnvio,
-        status: 'Pendente',
+        situacao: values.situacao,
+        status_envio: values.statusEnvio,
         usuario_id: user?.id,
       })
 
@@ -287,6 +292,51 @@ export default function CreateInstallment() {
                           <SelectItem value="Secretaria da Fazenda">
                             Secretaria da Fazenda
                           </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="situacao"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-700">Situação</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-slate-50/50">
+                            <SelectValue placeholder="Selecione a situação" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Ativo">Ativo</SelectItem>
+                          <SelectItem value="Encerrado">Encerrado</SelectItem>
+                          <SelectItem value="Rompido">Rompido</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="statusEnvio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-700">Status de Envio</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="bg-slate-50/50">
+                            <SelectValue placeholder="Selecione o status de envio" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Enviado">Enviado</SelectItem>
+                          <SelectItem value="Pendente">Pendente</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

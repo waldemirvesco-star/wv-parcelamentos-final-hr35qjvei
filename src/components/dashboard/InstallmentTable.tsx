@@ -47,10 +47,14 @@ import { Search, MoreHorizontal, Eye, Edit, Trash2, Filter, Download } from 'luc
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { Label } from '@/components/ui/label'
 
-const statusColors: Record<string, string> = {
+const situacaoColors: Record<string, string> = {
   Ativo: 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100',
   Encerrado: 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100',
-  Enviado: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100',
+  Rompido: 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100',
+}
+
+const statusEnvioColors: Record<string, string> = {
+  Enviado: 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100',
   Pendente: 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100',
 }
 
@@ -63,8 +67,10 @@ interface InstallmentTableProps {
   totalRecords: number
   searchInput: string
   onSearchChange: (val: string) => void
-  statusFilter: string
-  onStatusFilterChange: (val: string) => void
+  situacaoFilter: string
+  onSituacaoFilterChange: (val: string) => void
+  statusEnvioFilter: string
+  onStatusEnvioFilterChange: (val: string) => void
   itemsPerPage: number
   orgaoFilter: string
   onOrgaoFilterChange: (val: string) => void
@@ -86,8 +92,10 @@ export function InstallmentTable({
   totalRecords,
   searchInput,
   onSearchChange,
-  statusFilter,
-  onStatusFilterChange,
+  situacaoFilter,
+  onSituacaoFilterChange,
+  statusEnvioFilter,
+  onStatusEnvioFilterChange,
   itemsPerPage,
   orgaoFilter,
   onOrgaoFilterChange,
@@ -129,14 +137,23 @@ export function InstallmentTable({
             />
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+            <Select value={situacaoFilter} onValueChange={onSituacaoFilterChange}>
               <SelectTrigger className="w-full sm:w-[150px] bg-white">
-                <SelectValue placeholder="Filtrar por Status" />
+                <SelectValue placeholder="Situação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todas">Todas Situações</SelectItem>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Encerrado">Encerrado</SelectItem>
+                <SelectItem value="Rompido">Rompido</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusEnvioFilter} onValueChange={onStatusEnvioFilterChange}>
+              <SelectTrigger className="w-full sm:w-[150px] bg-white">
+                <SelectValue placeholder="Status Envio" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Todos">Todos Status</SelectItem>
-                <SelectItem value="Ativo">Ativo</SelectItem>
-                <SelectItem value="Encerrado">Encerrado</SelectItem>
                 <SelectItem value="Enviado">Enviado</SelectItem>
                 <SelectItem value="Pendente">Pendente</SelectItem>
               </SelectContent>
@@ -221,14 +238,15 @@ export function InstallmentTable({
               <TableHead className="font-semibold text-slate-700">Empresa</TableHead>
               <TableHead className="font-semibold text-slate-700">Órgão</TableHead>
               <TableHead className="font-semibold text-slate-700 w-[200px]">Parcelas</TableHead>
-              <TableHead className="font-semibold text-slate-700">Status</TableHead>
+              <TableHead className="font-semibold text-slate-700">Situação</TableHead>
+              <TableHead className="font-semibold text-slate-700">Status Envio</TableHead>
               <TableHead className="font-semibold text-slate-700 w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={7} className="text-center py-8 text-slate-500">
                   Nenhum parcelamento encontrado.
                 </TableCell>
               </TableRow>
@@ -255,8 +273,13 @@ export function InstallmentTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={statusColors[item.status] || ''}>
-                      {item.status}
+                    <Badge variant="outline" className={situacaoColors[item.situacao] || ''}>
+                      {item.situacao || '-'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={statusEnvioColors[item.status_envio] || ''}>
+                      {item.status_envio || '-'}
                     </Badge>
                   </TableCell>
                   <TableCell>

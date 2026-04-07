@@ -4,7 +4,8 @@ export const getParcelamentosPaginated = async (
   page: number,
   perPage: number,
   searchTerm: string,
-  statusFilter: string,
+  situacaoFilter: string,
+  statusEnvioFilter: string,
   orgaoFilter: string,
   metodoEnvioFilter: string,
   dateStart: string,
@@ -15,8 +16,11 @@ export const getParcelamentosPaginated = async (
   if (searchTerm) {
     filters.push(`(cnpj ~ "${searchTerm}" || empresa_nome ~ "${searchTerm}")`)
   }
-  if (statusFilter && statusFilter !== 'Todos') {
-    filters.push(`status = "${statusFilter}"`)
+  if (situacaoFilter && situacaoFilter !== 'Todas' && situacaoFilter !== 'Todos') {
+    filters.push(`situacao = "${situacaoFilter}"`)
+  }
+  if (statusEnvioFilter && statusEnvioFilter !== 'Todos') {
+    filters.push(`status_envio = "${statusEnvioFilter}"`)
   }
   if (orgaoFilter && orgaoFilter !== 'Todos') {
     filters.push(`orgao = "${orgaoFilter}"`)
@@ -46,15 +50,20 @@ export const getParcelamentosStats = async (
   metodoEnvioFilter?: string,
   dateStart?: string,
   dateEnd?: string,
-  statusFilter?: string,
+  situacaoFilter?: string,
+  statusEnvioFilter?: string,
 ) => {
-  const getCount = async (status: string) => {
-    const filters: string[] = [`status = "${status}"`]
+  const getCount = async (filterStr: string) => {
+    const filters: string[] = []
+    if (filterStr) filters.push(filterStr)
     if (searchTerm) filters.push(`(cnpj ~ "${searchTerm}" || empresa_nome ~ "${searchTerm}")`)
     if (orgaoFilter && orgaoFilter !== 'Todos') filters.push(`orgao = "${orgaoFilter}"`)
     if (dateStart) filters.push(`data_adesao >= "${dateStart}"`)
     if (dateEnd) filters.push(`data_adesao <= "${dateEnd}"`)
-    if (statusFilter && statusFilter !== 'Todos' && statusFilter !== status) return 0
+    if (situacaoFilter && situacaoFilter !== 'Todas' && situacaoFilter !== 'Todos')
+      filters.push(`situacao = "${situacaoFilter}"`)
+    if (statusEnvioFilter && statusEnvioFilter !== 'Todos')
+      filters.push(`status_envio = "${statusEnvioFilter}"`)
 
     const res = await pb.collection('parcelamentos').getList(1, 1, {
       filter: filters.join(' && '),
@@ -62,14 +71,15 @@ export const getParcelamentosStats = async (
     return res.totalItems
   }
 
-  const [ativos, encerrados, enviados, pendentes] = await Promise.all([
-    getCount('Ativo'),
-    getCount('Encerrado'),
-    getCount('Enviado'),
-    getCount('Pendente'),
+  const [ativos, encerrados, rompidos, enviados, pendentes] = await Promise.all([
+    getCount('situacao = "Ativo"'),
+    getCount('situacao = "Encerrado"'),
+    getCount('situacao = "Rompido"'),
+    getCount('status_envio = "Enviado"'),
+    getCount('status_envio = "Pendente"'),
   ])
 
-  return { ativos, encerrados, enviados, pendentes }
+  return { ativos, encerrados, rompidos, enviados, pendentes }
 }
 
 export const getDistributionByOrgao = async () => {
@@ -92,7 +102,8 @@ export const deleteParcelamento = async (id: string) => {
 
 export const getAllParcelamentosFiltered = async (
   searchTerm: string,
-  statusFilter: string,
+  situacaoFilter: string,
+  statusEnvioFilter: string,
   orgaoFilter: string,
   metodoEnvioFilter: string,
   dateStart: string,
@@ -103,8 +114,11 @@ export const getAllParcelamentosFiltered = async (
   if (searchTerm) {
     filters.push(`(cnpj ~ "${searchTerm}" || empresa_nome ~ "${searchTerm}")`)
   }
-  if (statusFilter && statusFilter !== 'Todos') {
-    filters.push(`status = "${statusFilter}"`)
+  if (situacaoFilter && situacaoFilter !== 'Todas' && situacaoFilter !== 'Todos') {
+    filters.push(`situacao = "${situacaoFilter}"`)
+  }
+  if (statusEnvioFilter && statusEnvioFilter !== 'Todos') {
+    filters.push(`status_envio = "${statusEnvioFilter}"`)
   }
   if (orgaoFilter && orgaoFilter !== 'Todos') {
     filters.push(`orgao = "${orgaoFilter}"`)

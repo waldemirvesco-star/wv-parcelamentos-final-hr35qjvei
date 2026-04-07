@@ -18,7 +18,8 @@ export default function Parcelamentos() {
   const [totalRecords, setTotalRecords] = useState(0)
   const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('Todos')
+  const [situacaoFilter, setSituacaoFilter] = useState('Todas')
+  const [statusEnvioFilter, setStatusEnvioFilter] = useState('Todos')
 
   // Advanced filters
   const [orgaoFilter, setOrgaoFilter] = useState('Todos')
@@ -44,7 +45,8 @@ export default function Parcelamentos() {
         page,
         ITEMS_PER_PAGE,
         searchTerm,
-        statusFilter,
+        situacaoFilter,
+        statusEnvioFilter,
         orgaoFilter,
         metodoEnvioFilter,
         dateStart,
@@ -61,7 +63,17 @@ export default function Parcelamentos() {
         variant: 'destructive',
       })
     }
-  }, [page, searchTerm, statusFilter, orgaoFilter, metodoEnvioFilter, dateStart, dateEnd, toast])
+  }, [
+    page,
+    searchTerm,
+    situacaoFilter,
+    statusEnvioFilter,
+    orgaoFilter,
+    metodoEnvioFilter,
+    dateStart,
+    dateEnd,
+    toast,
+  ])
 
   useEffect(() => {
     loadData()
@@ -93,14 +105,23 @@ export default function Parcelamentos() {
     try {
       const data = await getAllParcelamentosFiltered(
         searchTerm,
-        statusFilter,
+        situacaoFilter,
+        statusEnvioFilter,
         orgaoFilter,
         metodoEnvioFilter,
         dateStart,
         dateEnd,
       )
 
-      const headers = ['CNPJ', 'Empresa', 'Órgão', 'Data de Adesão', 'Parcelas', 'Status']
+      const headers = [
+        'CNPJ',
+        'Empresa',
+        'Órgão',
+        'Data de Adesão',
+        'Parcelas',
+        'Situação',
+        'Status Envio',
+      ]
       const csvContent = [
         headers.join(','),
         ...data.map((item) =>
@@ -110,7 +131,8 @@ export default function Parcelamentos() {
             `"${item.orgao || ''}"`,
             `"${item.data_adesao || ''}"`,
             `"${item.parcela_atual || 0}/${item.quantidade_parcelas || 0}"`,
-            `"${item.status}"`,
+            `"${item.situacao || ''}"`,
+            `"${item.status_envio || ''}"`,
           ].join(','),
         ),
       ].join('\n')
@@ -163,9 +185,14 @@ export default function Parcelamentos() {
           totalRecords={totalRecords}
           searchInput={searchInput}
           onSearchChange={setSearchInput}
-          statusFilter={statusFilter}
-          onStatusFilterChange={(v) => {
-            setStatusFilter(v)
+          situacaoFilter={situacaoFilter}
+          onSituacaoFilterChange={(v) => {
+            setSituacaoFilter(v)
+            setPage(1)
+          }}
+          statusEnvioFilter={statusEnvioFilter}
+          onStatusEnvioFilterChange={(v) => {
+            setStatusEnvioFilter(v)
             setPage(1)
           }}
           orgaoFilter={orgaoFilter}
