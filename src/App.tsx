@@ -9,6 +9,9 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import AdminUsers from './pages/admin/Users'
+import Parcelamentos from './pages/Parcelamentos'
+import Relatorios from './pages/Relatorios'
+import Configuracoes from './pages/Configuracoes'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -44,6 +47,9 @@ const App = () => (
             <Route path="/dashboard" element={<Index />} />
             <Route path="/novo-parcelamento" element={<CreateInstallment />} />
             <Route path="/parcelamento/:id" element={<InstallmentDetail />} />
+            <Route path="/parcelamentos" element={<Parcelamentos />} />
+            <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="/configuracoes" element={<Configuracoes />} />
             <Route
               path="/admin/users"
               element={
