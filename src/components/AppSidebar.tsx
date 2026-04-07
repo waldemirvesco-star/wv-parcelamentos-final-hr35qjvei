@@ -39,20 +39,29 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                    <Link to={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navItems.map((item) => {
+                const isActive =
+                  location.pathname === item.url ||
+                  (item.url === '/parcelamentos' && location.pathname.startsWith('/parcelamento/'))
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive}>
+                      <Link to={item.url}>
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
 
               {user?.role === 'Admin' && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.pathname === '/admin/users'}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname.startsWith('/admin/users')}
+                  >
                     <Link to="/admin/users">
                       <Users className="w-4 h-4" />
                       <span>Usuários</span>
