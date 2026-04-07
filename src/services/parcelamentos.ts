@@ -121,3 +121,33 @@ export const getAllParcelamentosFiltered = async (
     sort: '-created',
   })
 }
+
+export const createParcelamento = async (data: any) => {
+  return pb.collection('parcelamentos').create(data)
+}
+
+export const getParcelamentoByCnpj = async (cnpj: string) => {
+  try {
+    return await pb.collection('parcelamentos').getFirstListItem(`cnpj = "${cnpj}"`)
+  } catch (error) {
+    return null
+  }
+}
+
+export const getParcelamento = async (id: string) => {
+  return pb.collection('parcelamentos').getOne(id)
+}
+
+export const updateParcelamento = async (id: string, data: any) => {
+  return pb.collection('parcelamentos').update(id, data)
+}
+
+export const getUserParcelamentos = async (userId?: string) => {
+  const options: any = {
+    sort: '-created',
+  }
+  if (userId) {
+    options.filter = `user = "${userId}"`
+  }
+  return pb.collection('parcelamentos').getFullList(options)
+}
