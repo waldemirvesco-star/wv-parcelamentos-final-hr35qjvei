@@ -1,97 +1,49 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from '@/components/ui/chart'
-import { PieChart, Pie, Cell, Label } from 'recharts'
-
-const chartConfig = {
-  'Receita Federal': { label: 'Receita Federal', color: 'hsl(var(--chart-1))' },
-  'Estado SP': { label: 'Estado SP', color: 'hsl(var(--chart-2))' },
-  Prefeitura: { label: 'Prefeitura', color: 'hsl(var(--chart-3))' },
-  PGFN: { label: 'PGFN', color: 'hsl(var(--chart-4))' },
-  'Secretaria da Fazenda': { label: 'Sec. da Fazenda', color: 'hsl(var(--chart-5))' },
-  Outros: { label: 'Outros', color: 'hsl(var(--chart-1))' },
-}
+import { Badge } from '@/components/ui/badge'
 
 export function DistributionChart({ data = [] }: { data?: { orgao: string; value: number }[] }) {
-  const dataWithColors = data.map((d) => ({
-    ...d,
-    fill: chartConfig[d.orgao as keyof typeof chartConfig]?.color || 'hsl(var(--chart-1))',
-  }))
-
   const totalInstallments = data.reduce((acc, curr) => acc + curr.value, 0)
 
   return (
     <Card className="flex flex-col h-full shadow-sm rounded-xl">
-      <CardHeader className="items-center pb-0 pt-4 text-center">
-        <CardTitle className="text-base text-slate-800">Distribuição por Órgão</CardTitle>
+      <CardHeader className="pb-4 pt-6">
+        <CardTitle className="text-base font-semibold text-slate-800">
+          Distribuição por Órgão
+        </CardTitle>
         <CardDescription className="text-xs text-slate-500">
-          Totalizadores por organização
+          Totalizadores de processos por organização
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-4 flex flex-col items-center justify-center min-h-[250px]">
+      <CardContent className="flex-1 pb-6">
         {data.length === 0 ? (
-          <p className="text-sm text-slate-500">Sem dados para exibir.</p>
+          <div className="flex items-center justify-center h-full min-h-[200px]">
+            <p className="text-sm text-slate-500">Sem dados para exibir.</p>
+          </div>
         ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="mx-auto aspect-square w-full max-w-[250px]"
-          >
-            <PieChart>
-              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-              <Pie
-                data={dataWithColors}
-                dataKey="value"
-                nameKey="orgao"
-                innerRadius={65}
-                strokeWidth={2}
-                paddingAngle={2}
-                label={({ value }) => value}
-                labelLine={false}
-              >
-                <Label
-                  content={({ viewBox }) => {
-                    if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                      return (
-                        <text
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                        >
-                          <tspan
-                            x={viewBox.cx}
-                            y={viewBox.cy}
-                            className="fill-slate-800 text-3xl font-bold"
-                          >
-                            {totalInstallments.toLocaleString()}
-                          </tspan>
-                          <tspan
-                            x={viewBox.cx}
-                            y={(viewBox.cy || 0) + 24}
-                            className="fill-slate-500 text-xs"
-                          >
-                            Processos
-                          </tspan>
-                        </text>
-                      )
-                    }
-                  }}
-                />
-                {dataWithColors.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-              <ChartLegend
-                className="mt-4 text-xs flex-wrap justify-center gap-2"
-                content={<ChartLegendContent />}
-              />
-            </PieChart>
-          </ChartContainer>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              {data.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100 transition-colors hover:bg-slate-100"
+                >
+                  <span className="text-sm font-medium text-slate-700">
+                    {item.orgao || 'Não especificado'}
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="bg-white font-semibold text-slate-700 border-slate-200 shadow-sm"
+                  >
+                    {item.value}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+            <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between px-1">
+              <span className="text-sm font-semibold text-slate-800">Total de Processos</span>
+              <span className="text-lg font-bold text-slate-900">{totalInstallments}</span>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
