@@ -21,6 +21,9 @@ export const getParcelamentosPaginated = async (
   }
   if (statusEnvioFilter && statusEnvioFilter !== 'Todos') {
     filters.push(`status_envio = "${statusEnvioFilter}"`)
+    if (statusEnvioFilter === 'Pendente') {
+      filters.push(`situacao = "Ativo"`)
+    }
   }
   if (orgaoFilter && orgaoFilter !== 'Todos') {
     filters.push(`orgao = "${orgaoFilter}"`)
@@ -76,7 +79,7 @@ export const getParcelamentosStats = async (
     getCount('situacao = "Encerrado"'),
     getCount('situacao = "Rompido"'),
     getCount('status_envio = "Enviado"'),
-    getCount('status_envio = "Pendente"'),
+    getCount('status_envio = "Pendente" && situacao = "Ativo"'),
   ])
 
   return { ativos, encerrados, rompidos, enviados, pendentes }
@@ -119,6 +122,9 @@ export const getAllParcelamentosFiltered = async (
   }
   if (statusEnvioFilter && statusEnvioFilter !== 'Todos') {
     filters.push(`status_envio = "${statusEnvioFilter}"`)
+    if (statusEnvioFilter === 'Pendente') {
+      filters.push(`situacao = "Ativo"`)
+    }
   }
   if (orgaoFilter && orgaoFilter !== 'Todos') {
     filters.push(`orgao = "${orgaoFilter}"`)

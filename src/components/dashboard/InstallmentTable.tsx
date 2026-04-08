@@ -43,7 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Search, MoreHorizontal, Eye, Edit, Trash2, Filter, Download } from 'lucide-react'
+import { Search, MoreHorizontal, Eye, Edit, Trash2, Filter, Download, Send } from 'lucide-react'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { Label } from '@/components/ui/label'
 
@@ -81,6 +81,7 @@ interface InstallmentTableProps {
   dateEnd: string
   onDateEndChange: (val: string) => void
   onExportCsv: () => void
+  onMarkAsSent?: (item: any) => void
 }
 
 export function InstallmentTable({
@@ -106,6 +107,7 @@ export function InstallmentTable({
   dateEnd,
   onDateEndChange,
   onExportCsv,
+  onMarkAsSent,
 }: InstallmentTableProps) {
   const navigate = useNavigate()
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -296,6 +298,13 @@ export function InstallmentTable({
                         <DropdownMenuItem onClick={() => handleAction('Editar', item.id)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar
                         </DropdownMenuItem>
+                        {item.status_envio === 'Pendente' &&
+                          item.situacao === 'Ativo' &&
+                          onMarkAsSent && (
+                            <DropdownMenuItem onClick={() => onMarkAsSent(item)}>
+                              <Send className="mr-2 h-4 w-4 text-emerald-600" /> Marcar como Enviado
+                            </DropdownMenuItem>
+                          )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600 cursor-pointer"

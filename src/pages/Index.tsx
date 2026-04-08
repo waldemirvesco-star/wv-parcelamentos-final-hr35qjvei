@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle, Archive, Send, AlertCircle, Plus } from 'lucide-react'
+import { CheckCircle, Archive, Send, AlertCircle, Plus, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { InstallmentTable } from '@/components/dashboard/InstallmentTable'
@@ -12,12 +12,20 @@ import {
   deleteParcelamento,
   getAllParcelamentosFiltered,
   getDistributionByOrgao,
+  updateParcelamento,
 } from '@/services/parcelamentos'
 import { useRealtime } from '@/hooks/use-realtime'
+import { getNextMonthBusinessDay } from '@/lib/business-days'
 
 export default function Index() {
   const [installments, setInstallments] = useState<any[]>([])
-  const [stats, setStats] = useState({ ativos: 0, encerrados: 0, enviados: 0, pendentes: 0 })
+  const [stats, setStats] = useState({
+    ativos: 0,
+    encerrados: 0,
+    rompidos: 0,
+    enviados: 0,
+    pendentes: 0,
+  })
   const [distribution, setDistribution] = useState<{ orgao: string; value: number }[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -157,6 +165,42 @@ export default function Index() {
     }
   }
 
+  const handleMarkAsSent = async (item: any) => {
+    try {
+      const nextParcela = (item.parcela_atual || 0) + 1
+      const totalParcelas = item.parcelas_totais || item.quantidade_parcelas || 0
+      const isFinished = nextParcela >= totalParcelas
+
+      const updates: any = {
+        parcela_atual: nextParcela,
+        data_ultimo_envio: new Date().toISOString(),
+        status_envio: 'Enviado',
+      }
+
+      if (isFinished) {
+        updates.situacao = 'Encerrado'
+      }
+
+      if (item.dia_util_limite) {
+        updates.data_limite_envio = getNextMonthBusinessDay(item.dia_util_limite)
+      }
+
+      await updateParcelamento(item.id, updates)
+      toast({
+        title: 'Sucesso',
+        description: 'Parcelamento marcado como enviado.',
+      })
+      loadData()
+    } catch (err) {
+      console.error(err)
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível marcar como enviado.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -173,7 +217,7 @@ export default function Index() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <StatCard
             title="Parcelamentos Ativos"
             value={stats.ativos}
@@ -181,10 +225,10 @@ export default function Index() {
             theme="emerald"
           />
           <StatCard
-            title="Parcelamentos Encerrados"
-            value={stats.encerrados}
-            icon={<Archive className="h-6 w-6 text-slate-600" />}
-            theme="slate"
+            title="Pendentes de Envio"
+            value={stats.pendentes}
+            icon={<AlertCircle className="h-6 w-6 text-amber-600" />}
+            theme="amber"
           />
           <StatCard
             title="Enviados no Mês"
@@ -193,10 +237,16 @@ export default function Index() {
             theme="blue"
           />
           <StatCard
-            title="Pendentes de Envio"
-            value={stats.pendentes}
-            icon={<AlertCircle className="h-6 w-6 text-amber-600" />}
-            theme="amber"
+            title="Parcelamentos Rompidos"
+            value={stats.rompidos}
+            icon={<XCircle className="h-6 w-6 text-red-600" />}
+            theme="red"
+          />
+          <StatCard
+            title="Parcelamentos Encerrados"
+            value={stats.encerrados}
+            icon={<Archive className="h-6 w-6 text-slate-600" />}
+            theme="slate"
           />
         </div>
         <div className="lg:col-span-1">
@@ -244,6 +294,7 @@ export default function Index() {
           }}
           onExportCsv={handleExportCsv}
           itemsPerPage={ITEMS_PER_PAGE}
+          onMarkAsSent={handleMarkAsSent}
         />
       </div>
     </div>

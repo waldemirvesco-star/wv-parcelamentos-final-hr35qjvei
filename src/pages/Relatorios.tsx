@@ -117,7 +117,7 @@ export default function Relatorios() {
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
-                  <TableHead className="font-semibold text-slate-700">Empresa</TableHead>
+                  <TableHead className="font-semibold text-slate-700">Empresa / CNPJ</TableHead>
                   <TableHead className="font-semibold text-slate-700">Situação</TableHead>
                   <TableHead className="font-semibold text-slate-700 text-center">
                     Data do Último Envio
@@ -148,12 +148,15 @@ export default function Relatorios() {
                   </TableRow>
                 ) : (
                   data.map((item) => {
-                    const total =
-                      item.parcelas_totais || item.quantidade_parcelas + item.parcela_atual || 0
+                    const total = item.parcelas_totais || item.quantidade_parcelas || 0
+                    const faltantes = Math.max(0, total - (item.parcela_atual || 0))
                     return (
                       <TableRow key={item.id} className="hover:bg-slate-50/50">
                         <TableCell className="font-medium text-slate-900">
                           {item.empresa_nome}
+                          <div className="text-xs text-slate-500 font-normal mt-0.5">
+                            {item.cnpj}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -178,10 +181,10 @@ export default function Relatorios() {
                         </TableCell>
                         <TableCell className="text-center font-medium">{total}</TableCell>
                         <TableCell className="text-center text-emerald-600 font-semibold">
-                          {item.parcela_atual}
+                          {item.parcela_atual || 0}
                         </TableCell>
                         <TableCell className="text-center text-amber-600 font-semibold">
-                          {item.quantidade_parcelas}
+                          {faltantes}
                         </TableCell>
                       </TableRow>
                     )
