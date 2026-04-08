@@ -28,7 +28,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { createParcelamento, getParcelamentoByCnpj } from '@/services/parcelamentos'
 import { createHistorico } from '@/services/historico'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
-import { getNextMonthBusinessDay } from '@/lib/business-days'
+import { calculateInstallmentDeadline } from '@/lib/business-days'
 
 const formSchema = z.object({
   dataAdesao: z.string().min(1, 'A data de adesão é obrigatória'),
@@ -82,9 +82,13 @@ export default function CreateInstallment() {
   const parcelasTotais = form.watch('parcelasTotais') || 0
   const parcelaAtual = form.watch('parcelaAtual') || 0
   const diaUtilLimite = form.watch('diaUtilLimite')
+  const dataAdesao = form.watch('dataAdesao')
   const parcelasFaltando = Math.max(0, parcelasTotais - parcelaAtual)
   const cnpjValue = form.watch('cnpj')
-  const dataLimiteEnvioPreview = diaUtilLimite ? getNextMonthBusinessDay(diaUtilLimite) : ''
+  const dataLimiteEnvioPreview =
+    diaUtilLimite && dataAdesao
+      ? calculateInstallmentDeadline(diaUtilLimite, dataAdesao, parcelaAtual)
+      : ''
 
   useEffect(() => {
     if (cnpjValue && /^\d{14}$/.test(cnpjValue)) {
@@ -99,9 +103,14 @@ export default function CreateInstallment() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
     try {
-      const dataLimiteEnvio = values.diaUtilLimite
-        ? getNextMonthBusinessDay(values.diaUtilLimite)
-        : ''
+      const dataLimiteEnvio =
+        values.diaUtilLimite && values.dataAdesao
+          ? calculateInstallmentDeadline(
+              values.diaUtilLimite,
+              values.dataAdesao,
+              values.parcelaAtual,
+            )
+          : ''
       const quantidadeParcelas = Math.max(0, values.parcelasTotais - values.parcelaAtual)
 
       const parcelamento = await createParcelamento({
