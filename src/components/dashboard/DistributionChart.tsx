@@ -48,6 +48,8 @@ export function DistributionChart({ data = [] }: { data?: { orgao: string; value
                 innerRadius={50}
                 strokeWidth={2}
                 paddingAngle={2}
+                label={({ value }) => value}
+                labelLine={false}
               >
                 {dataWithColors.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
