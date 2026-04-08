@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Eye, Trash2, Download, Search } from 'lucide-react'
+import { Eye, Trash2, Download, Search, Pencil } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -49,6 +49,7 @@ interface InstallmentTableProps {
   onDateEndChange: (val: string) => void
   onExportCsv: () => void
   itemsPerPage: number
+  onEdit: (item: any) => void
 }
 
 export function InstallmentTable({
@@ -71,6 +72,7 @@ export function InstallmentTable({
   dateEnd,
   onDateEndChange,
   onExportCsv,
+  onEdit,
 }: InstallmentTableProps) {
   const getStatusEnvioColor = (status: string) => {
     switch (status) {
@@ -237,11 +239,21 @@ export function InstallmentTable({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(item)}
+                        className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        title="Editar"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Link to={`/parcelamento/${item.id}`}>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          title="Visualizar"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -251,6 +263,7 @@ export function InstallmentTable({
                         size="icon"
                         onClick={() => onDelete(item.id)}
                         className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Excluir"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -21,7 +21,10 @@ export const getParcelamentosPaginated = async (
   }
   if (statusEnvioFilter && statusEnvioFilter !== 'Todos') {
     filters.push(`status_envio = "${statusEnvioFilter}"`)
-    if (statusEnvioFilter === 'Pendente') {
+    if (
+      statusEnvioFilter === 'Pendente' &&
+      (!situacaoFilter || situacaoFilter === 'Todas' || situacaoFilter === 'Todos')
+    ) {
       filters.push(`situacao = "Ativo"`)
     }
   }
@@ -73,8 +76,15 @@ export const getParcelamentosStats = async (
     if (dateEnd) filters.push(`data_adesao <= "${dateEnd}"`)
     if (situacaoFilter && situacaoFilter !== 'Todas' && situacaoFilter !== 'Todos')
       filters.push(`situacao = "${situacaoFilter}"`)
-    if (statusEnvioFilter && statusEnvioFilter !== 'Todos')
+    if (statusEnvioFilter && statusEnvioFilter !== 'Todos') {
       filters.push(`status_envio = "${statusEnvioFilter}"`)
+      if (
+        statusEnvioFilter === 'Pendente' &&
+        (!situacaoFilter || situacaoFilter === 'Todas' || situacaoFilter === 'Todos')
+      ) {
+        filters.push(`situacao = "Ativo"`)
+      }
+    }
 
     const res = await pb.collection('parcelamentos').getList(1, 1, {
       filter: filters.join(' && '),
@@ -130,7 +140,10 @@ export const getAllParcelamentosFiltered = async (
   }
   if (statusEnvioFilter && statusEnvioFilter !== 'Todos') {
     filters.push(`status_envio = "${statusEnvioFilter}"`)
-    if (statusEnvioFilter === 'Pendente') {
+    if (
+      statusEnvioFilter === 'Pendente' &&
+      (!situacaoFilter || situacaoFilter === 'Todas' || situacaoFilter === 'Todos')
+    ) {
       filters.push(`situacao = "Ativo"`)
     }
   }

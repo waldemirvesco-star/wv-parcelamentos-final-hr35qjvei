@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { InstallmentTable } from '@/components/dashboard/InstallmentTable'
 import { DistributionChart } from '@/components/dashboard/DistributionChart'
+import { EditInstallmentModal } from '@/components/dashboard/EditInstallmentModal'
 import { useToast } from '@/hooks/use-toast'
 import {
   getParcelamentosPaginated,
@@ -12,10 +13,8 @@ import {
   deleteParcelamento,
   getAllParcelamentosFiltered,
   getDistributionByOrgao,
-  updateParcelamento,
 } from '@/services/parcelamentos'
 import { useRealtime } from '@/hooks/use-realtime'
-import { getNextMonthBusinessDay } from '@/lib/business-days'
 
 export default function Index() {
   const [installments, setInstallments] = useState<any[]>([])
@@ -30,15 +29,18 @@ export default function Index() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalRecords, setTotalRecords] = useState(0)
+
+  // Filters
   const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('Todos')
-
-  // Advanced filters
+  const [situacaoFilter, setSituacaoFilter] = useState('Todas')
+  const [statusEnvioFilter, setStatusEnvioFilter] = useState('Todos')
   const [orgaoFilter, setOrgaoFilter] = useState('Todos')
   const [metodoEnvioFilter, setMetodoEnvioFilter] = useState('Todos')
   const [dateStart, setDateStart] = useState('')
   const [dateEnd, setDateEnd] = useState('')
+
+  const [editingItem, setEditingItem] = useState<any>(null)
 
   const { toast } = useToast()
 
@@ -59,7 +61,8 @@ export default function Index() {
           page,
           ITEMS_PER_PAGE,
           searchTerm,
-          statusFilter,
+          situacaoFilter,
+          statusEnvioFilter,
           orgaoFilter,
           metodoEnvioFilter,
           dateStart,
@@ -71,7 +74,8 @@ export default function Index() {
           metodoEnvioFilter,
           dateStart,
           dateEnd,
-          statusFilter,
+          situacaoFilter,
+          statusEnvioFilter,
         ),
         getDistributionByOrgao(),
       ])
@@ -88,7 +92,17 @@ export default function Index() {
         variant: 'destructive',
       })
     }
-  }, [page, searchTerm, statusFilter, orgaoFilter, metodoEnvioFilter, dateStart, dateEnd, toast])
+  }, [
+    page,
+    searchTerm,
+    situacaoFilter,
+    statusEnvioFilter,
+    orgaoFilter,
+    metodoEnvioFilter,
+    dateStart,
+    dateEnd,
+    toast,
+  ])
 
   useEffect(() => {
     loadData()
@@ -120,14 +134,23 @@ export default function Index() {
     try {
       const data = await getAllParcelamentosFiltered(
         searchTerm,
-        statusFilter,
+        situacaoFilter,
+        statusEnvioFilter,
         orgaoFilter,
         metodoEnvioFilter,
         dateStart,
         dateEnd,
       )
 
-      const headers = ['CNPJ', 'Empresa', 'Órgão', 'Data de Adesão', 'Parcelas', 'Status']
+      const headers = [
+        'CNPJ',
+        'Empresa',
+        'Órgão',
+        'Data de Adesão',
+        'Parcelas',
+        'Situação',
+        'Status Envio',
+      ]
       const csvContent = [
         headers.join(','),
         ...data.map((item) =>
@@ -136,8 +159,9 @@ export default function Index() {
             `"${item.empresa_nome}"`,
             `"${item.orgao || ''}"`,
             `"${item.data_adesao || ''}"`,
-            `"${item.parcela_atual || 0}/${item.quantidade_parcelas || 0}"`,
-            `"${item.status}"`,
+            `"${item.parcela_atual || 0}/${item.parcelas_totais || item.quantidade_parcelas || 0}"`,
+            `"${item.situacao || ''}"`,
+            `"${item.status_envio || ''}"`,
           ].join(','),
         ),
       ].join('\n')
@@ -160,42 +184,6 @@ export default function Index() {
       toast({
         title: 'Erro',
         description: 'Erro ao exportar dados para CSV.',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleMarkAsSent = async (item: any) => {
-    try {
-      const nextParcela = (item.parcela_atual || 0) + 1
-      const totalParcelas = item.parcelas_totais || item.quantidade_parcelas || 0
-      const isFinished = nextParcela >= totalParcelas
-
-      const updates: any = {
-        parcela_atual: nextParcela,
-        data_ultimo_envio: new Date().toISOString(),
-        status_envio: 'Enviado',
-      }
-
-      if (isFinished) {
-        updates.situacao = 'Encerrado'
-      }
-
-      if (item.dia_util_limite) {
-        updates.data_limite_envio = getNextMonthBusinessDay(item.dia_util_limite)
-      }
-
-      await updateParcelamento(item.id, updates)
-      toast({
-        title: 'Sucesso',
-        description: 'Parcelamento marcado como enviado.',
-      })
-      loadData()
-    } catch (err) {
-      console.error(err)
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível marcar como enviado.',
         variant: 'destructive',
       })
     }
@@ -249,7 +237,7 @@ export default function Index() {
             theme="slate"
           />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 h-full">
           <DistributionChart data={distribution} />
         </div>
       </div>
@@ -261,15 +249,21 @@ export default function Index() {
         <InstallmentTable
           data={installments}
           onDelete={handleDelete}
+          onEdit={setEditingItem}
           page={page}
           onPageChange={setPage}
           totalPages={totalPages}
           totalRecords={totalRecords}
           searchInput={searchInput}
           onSearchChange={setSearchInput}
-          statusFilter={statusFilter}
-          onStatusFilterChange={(v) => {
-            setStatusFilter(v)
+          situacaoFilter={situacaoFilter}
+          onSituacaoFilterChange={(v) => {
+            setSituacaoFilter(v)
+            setPage(1)
+          }}
+          statusEnvioFilter={statusEnvioFilter}
+          onStatusEnvioFilterChange={(v) => {
+            setStatusEnvioFilter(v)
             setPage(1)
           }}
           orgaoFilter={orgaoFilter}
@@ -294,9 +288,14 @@ export default function Index() {
           }}
           onExportCsv={handleExportCsv}
           itemsPerPage={ITEMS_PER_PAGE}
-          onMarkAsSent={handleMarkAsSent}
         />
       </div>
+
+      <EditInstallmentModal
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={loadData}
+      />
     </div>
   )
 }
