@@ -200,3 +200,21 @@ export const getUserParcelamentos = async (userId?: string) => {
   }
   return pb.collection('parcelamentos').getFullList(options)
 }
+
+export const getUpcomingExpirations = async () => {
+  const today = new Date()
+  const offset = today.getTimezoneOffset()
+  const localToday = new Date(today.getTime() - offset * 60 * 1000)
+  const todayStr = localToday.toISOString().split('T')[0]
+
+  const next5Days = new Date(localToday)
+  next5Days.setDate(localToday.getDate() + 5)
+  const next5DaysStr = next5Days.toISOString().split('T')[0]
+
+  const filter = `situacao = "Ativo" && status_envio = "Pendente" && data_limite_envio >= "${todayStr}" && data_limite_envio <= "${next5DaysStr}"`
+
+  return pb.collection('parcelamentos').getFullList({
+    filter,
+    sort: 'data_limite_envio',
+  })
+}

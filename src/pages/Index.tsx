@@ -13,7 +13,10 @@ import {
   deleteParcelamento,
   getAllParcelamentosFiltered,
   getDistributionByOrgao,
+  getUpcomingExpirations,
 } from '@/services/parcelamentos'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Index() {
@@ -26,6 +29,7 @@ export default function Index() {
     pendentes: 0,
   })
   const [distribution, setDistribution] = useState<{ orgao: string; value: number }[]>([])
+  const [upcomingExpirations, setUpcomingExpirations] = useState<any[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalRecords, setTotalRecords] = useState(0)
@@ -56,7 +60,7 @@ export default function Index() {
 
   const loadData = useCallback(async () => {
     try {
-      const [paginatedData, statsData, distData] = await Promise.all([
+      const [paginatedData, statsData, distData, upcomingData] = await Promise.all([
         getParcelamentosPaginated(
           page,
           ITEMS_PER_PAGE,
@@ -78,12 +82,14 @@ export default function Index() {
           statusEnvioFilter,
         ),
         getDistributionByOrgao(),
+        getUpcomingExpirations(),
       ])
       setInstallments(paginatedData.items)
       setTotalPages(paginatedData.totalPages)
       setTotalRecords(paginatedData.totalItems)
       setStats(statsData)
       setDistribution(distData)
+      setUpcomingExpirations(upcomingData)
     } catch (err) {
       console.error(err)
       toast({
@@ -203,6 +209,44 @@ export default function Index() {
           </Button>
         </Link>
       </div>
+
+      {upcomingExpirations.length > 0 && (
+        <Alert className="border-orange-200 bg-orange-50 text-orange-900 dark:border-orange-900/50 dark:bg-orange-950/30 dark:text-orange-100 animate-in fade-in slide-in-from-top-4 duration-500">
+          <AlertCircle className="h-5 w-5 !text-orange-600 dark:!text-orange-500" />
+          <AlertTitle className="flex items-center gap-2 font-semibold text-orange-800 dark:text-orange-200">
+            Atenção: Vencimentos Próximos
+            <Badge className="bg-orange-600 hover:bg-orange-700 text-white border-none">
+              {upcomingExpirations.length}
+            </Badge>
+          </AlertTitle>
+          <AlertDescription className="mt-3 text-orange-800/90 dark:text-orange-200/90">
+            <p className="mb-3">
+              Os seguintes parcelamentos vencem nos próximos 5 dias e estão pendentes de envio:
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {upcomingExpirations.map((exp) => (
+                <Link
+                  to={`/parcelamento/${exp.id}`}
+                  key={exp.id}
+                  className="block p-3 rounded-md bg-white/60 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 transition-colors border border-orange-100 dark:border-orange-900/50 group shadow-sm"
+                >
+                  <div className="font-medium text-sm truncate group-hover:text-orange-700 dark:group-hover:text-orange-300 transition-colors">
+                    {exp.empresa_nome}
+                  </div>
+                  <div className="text-xs opacity-80 flex justify-between mt-1.5 items-center">
+                    <span className="truncate mr-2">{exp.orgao || 'N/A'}</span>
+                    <span className="font-semibold whitespace-nowrap bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200 px-1.5 py-0.5 rounded">
+                      {exp.data_limite_envio
+                        ? exp.data_limite_envio.split('-').reverse().join('/')
+                        : ''}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
