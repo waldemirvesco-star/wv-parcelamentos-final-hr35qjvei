@@ -32,7 +32,7 @@ export function AppSidebar() {
           <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-inner">
             <FileText className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold text-slate-900 tracking-tight">TaxFlow</span>
+          <span className="text-lg font-bold text-slate-900 tracking-tight">WV Parcelamentos</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">

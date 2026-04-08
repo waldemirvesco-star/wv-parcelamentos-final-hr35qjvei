@@ -46,7 +46,7 @@ const formSchema = z.object({
     .string()
     .url('Insira uma URL válida (ex: https://...)')
     .min(1, 'O site é obrigatório'),
-  senhaAcesso: z.string().min(1, 'A senha é obrigatória'),
+  senhaAcesso: z.string().optional(),
   situacao: z.string().min(1, 'A situação é obrigatória'),
   statusEnvio: z.string().min(1, 'O status de envio é obrigatório'),
 })

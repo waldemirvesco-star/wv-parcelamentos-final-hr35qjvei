@@ -52,7 +52,7 @@ export default function Login() {
             <FileText className="w-6 h-6 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
-            Bem-vindo ao TaxFlow
+            Bem-vindo ao WV Parcelamentos
           </CardTitle>
           <CardDescription className="text-slate-500">
             Insira suas credenciais para acessar sua conta
