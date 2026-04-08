@@ -28,6 +28,14 @@ export const getParcelamentosPaginated = async (
   if (orgaoFilter && orgaoFilter !== 'Todos') {
     filters.push(`orgao = "${orgaoFilter}"`)
   }
+  if (metodoEnvioFilter && metodoEnvioFilter !== 'Todos') {
+    if (metodoEnvioFilter === 'Ambos') {
+      filters.push(`metodo_envio ~ "Email"`)
+      filters.push(`metodo_envio ~ "WhatsApp"`)
+    } else {
+      filters.push(`metodo_envio ~ "${metodoEnvioFilter}"`)
+    }
+  }
   if (dateStart) {
     filters.push(`data_adesao >= "${dateStart}"`)
   }
@@ -128,6 +136,14 @@ export const getAllParcelamentosFiltered = async (
   }
   if (orgaoFilter && orgaoFilter !== 'Todos') {
     filters.push(`orgao = "${orgaoFilter}"`)
+  }
+  if (metodoEnvioFilter && metodoEnvioFilter !== 'Todos') {
+    if (metodoEnvioFilter === 'Ambos') {
+      filters.push(`metodo_envio ~ "Email"`)
+      filters.push(`metodo_envio ~ "WhatsApp"`)
+    } else {
+      filters.push(`metodo_envio ~ "${metodoEnvioFilter}"`)
+    }
   }
   if (dateStart) {
     filters.push(`data_adesao >= "${dateStart}"`)
