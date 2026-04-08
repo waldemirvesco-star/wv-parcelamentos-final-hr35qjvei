@@ -31,10 +31,18 @@ import { getNextMonthBusinessDay } from '@/lib/business-days'
 const formatVal = (v: any) =>
   v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v)
 
-const ViewField = ({ label, value }: { label: string; value?: string | number }) => (
-  <div>
-    <p className="text-sm font-medium text-slate-500">{label}</p>
-    <p className="text-base text-slate-900 mt-1 font-medium">{value || '-'}</p>
+const ViewField = ({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value?: string | number
+  className?: string
+}) => (
+  <div className="min-w-0 flex flex-col">
+    <p className="text-sm font-medium text-slate-500 truncate">{label}</p>
+    <p className={cn('text-base text-slate-900 mt-1 font-medium', className)}>{value || '-'}</p>
   </div>
 )
 
@@ -438,11 +446,15 @@ export default function InstallmentDetail() {
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
               <ViewField label="Método de Envio" value={installment.metodo_envio?.join(', ')} />
-              <ViewField label="Site do Parcelamento" value={installment.site_url} />
-              <div>
-                <p className="text-sm font-medium text-slate-500">Senha de Acesso</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-base text-slate-900 font-medium">
+              <ViewField
+                label="Site do Parcelamento"
+                value={installment.site_url}
+                className="break-all"
+              />
+              <div className="min-w-0 flex flex-col">
+                <p className="text-sm font-medium text-slate-500 truncate">Senha de Acesso</p>
+                <div className="flex items-center gap-3 mt-1 overflow-hidden">
+                  <span className="text-base text-slate-900 font-medium truncate">
                     {showPassword
                       ? installment.senha_acesso
                       : installment.senha_acesso
@@ -453,7 +465,7 @@ export default function InstallmentDetail() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-slate-500 hover:text-slate-900"
+                      className="h-6 px-2 text-slate-500 hover:text-slate-900 shrink-0"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
