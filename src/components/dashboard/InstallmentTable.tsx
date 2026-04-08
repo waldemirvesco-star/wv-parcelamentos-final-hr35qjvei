@@ -22,6 +22,7 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationPrevious,
+  PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination'
 import { Badge } from '@/components/ui/badge'
@@ -281,7 +282,7 @@ export function InstallmentTable({
           Mostrando {data.length} de {totalRecords} registros
         </div>
 
-        {totalPages > 1 && (
+        {totalPages > 0 && (
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -310,6 +311,19 @@ export function InstallmentTable({
                   </PaginationLink>
                 </PaginationItem>
               ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={(e) => {
+                    e.preventDefault()
+                    if (page < totalPages) onPageChange(page + 1)
+                  }}
+                  className={
+                    page >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                  }
+                  href="#"
+                />
+              </PaginationItem>
             </PaginationContent>
           </Pagination>
         )}

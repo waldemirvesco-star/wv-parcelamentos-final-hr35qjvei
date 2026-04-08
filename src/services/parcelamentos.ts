@@ -46,7 +46,8 @@ export const getParcelamentosPaginated = async (
     filters.push(`data_adesao <= "${dateEnd}"`)
   }
 
-  const result = await pb.collection('parcelamentos').getList(page, perPage, {
+  const limit = 20 // Fixed to 20 items per page as requested
+  const result = await pb.collection('parcelamentos').getList(page, limit, {
     filter: filters.length > 0 ? filters.join(' && ') : '',
     sort: '-created',
   })
