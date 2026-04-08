@@ -105,7 +105,17 @@ export default function Relatorios() {
     }
   }
 
-  const handleExportCsv = () => {
+  const escapeHtml = (unsafe: string | number | null | undefined) => {
+    if (unsafe === null || unsafe === undefined) return '-'
+    return String(unsafe)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+  }
+
+  const handleExportExcel = () => {
     if (data.length === 0) {
       toast({
         title: 'Aviso',
@@ -114,35 +124,73 @@ export default function Relatorios() {
       return
     }
 
-    const headers = [
-      'CNPJ',
-      'Empresa',
-      'Órgão',
-      'Situação',
-      'Status Envio',
-      'Parcelas Pagas',
-      'Total Parcelas',
-    ]
-    const csvContent = [
-      headers.join(','),
-      ...data.map((item) =>
-        [
-          item.cnpj,
-          `"${item.empresa_nome}"`,
-          item.orgao || '-',
-          item.situacao || '-',
-          item.status_envio || '-',
-          item.parcela_atual || 0,
-          item.quantidade_parcelas || 0,
-        ].join(','),
-      ),
-    ].join('\n')
+    const tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
+        <style>
+          .text-col { mso-number-format:"\\@"; }
+        </style>
+      </head>
+      <body>
+        <table border="1">
+          <thead>
+            <tr>
+              <th>CNPJ</th>
+              <th>Empresa Nome</th>
+              <th>Órgão</th>
+              <th>Data de Adesão</th>
+              <th>Quantidade de Parcelas</th>
+              <th>Parcela Atual</th>
+              <th>Situação</th>
+              <th>Status de Envio</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data
+              .map(
+                (item) =>
+                  '<tr>' +
+                  '<td class="text-col">' +
+                  escapeHtml(item.cnpj) +
+                  '</td>' +
+                  '<td>' +
+                  escapeHtml(item.empresa_nome) +
+                  '</td>' +
+                  '<td>' +
+                  escapeHtml(item.orgao) +
+                  '</td>' +
+                  '<td>' +
+                  escapeHtml(item.data_adesao) +
+                  '</td>' +
+                  '<td>' +
+                  (item.quantidade_parcelas || 0) +
+                  '</td>' +
+                  '<td>' +
+                  (item.parcela_atual || 0) +
+                  '</td>' +
+                  '<td>' +
+                  escapeHtml(item.situacao) +
+                  '</td>' +
+                  '<td>' +
+                  escapeHtml(item.status_envio) +
+                  '</td>' +
+                  '</tr>',
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = 'gestao_parcelamentos.csv'
+    link.download = 'gestao_parcelamentos.xls'
+    document.body.appendChild(link)
     link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -199,7 +247,7 @@ export default function Relatorios() {
           setDateEnd(val)
           setPage(1)
         }}
-        onExportCsv={handleExportCsv}
+        onExportCsv={handleExportExcel}
         onMarkAsSent={handleMarkAsSent}
       />
     </div>
