@@ -28,10 +28,12 @@ import { useAuth } from '@/hooks/use-auth'
 import { createParcelamento, getParcelamentoByCnpj } from '@/services/parcelamentos'
 import { createHistorico } from '@/services/historico'
 import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+import { getNextMonthBusinessDay } from '@/lib/business-days'
 
 const formSchema = z.object({
   dataAdesao: z.string().min(1, 'A data de adesão é obrigatória'),
-  quantidadeParcelas: z.coerce.number().min(1, 'Deve ter pelo menos 1 parcela'),
+  parcelasTotais: z.coerce.number().min(1, 'Deve ter pelo menos 1 parcela'),
+  diaUtilLimite: z.coerce.number().min(1, 'Dia útil deve ser maior que 0').optional(),
   parcelaAtual: z.coerce.number().min(0, 'A parcela atual não pode ser negativa'),
   numeroProcesso: z.string().min(1, 'O número do processo é obrigatório'),
   cnpj: z.string().regex(/^\d{14}$/, 'O CNPJ deve ter exatamente 14 números (apenas dígitos)'),
@@ -62,7 +64,8 @@ export default function CreateInstallment() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       dataAdesao: new Date().toISOString().split('T')[0],
-      quantidadeParcelas: 1,
+      parcelasTotais: 1,
+      diaUtilLimite: 5,
       parcelaAtual: 0,
       numeroProcesso: '',
       cnpj: '',
@@ -76,10 +79,12 @@ export default function CreateInstallment() {
     },
   })
 
-  const quantidadeParcelas = form.watch('quantidadeParcelas') || 0
+  const parcelasTotais = form.watch('parcelasTotais') || 0
   const parcelaAtual = form.watch('parcelaAtual') || 0
-  const parcelasFaltando = Math.max(0, quantidadeParcelas - parcelaAtual)
+  const diaUtilLimite = form.watch('diaUtilLimite')
+  const parcelasFaltando = Math.max(0, parcelasTotais - parcelaAtual)
   const cnpjValue = form.watch('cnpj')
+  const dataLimiteEnvioPreview = diaUtilLimite ? getNextMonthBusinessDay(diaUtilLimite) : ''
 
   useEffect(() => {
     if (cnpjValue && /^\d{14}$/.test(cnpjValue)) {
@@ -94,13 +99,21 @@ export default function CreateInstallment() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
     try {
+      const dataLimiteEnvio = values.diaUtilLimite
+        ? getNextMonthBusinessDay(values.diaUtilLimite)
+        : ''
+      const quantidadeParcelas = Math.max(0, values.parcelasTotais - values.parcelaAtual)
+
       const parcelamento = await createParcelamento({
         cnpj: values.cnpj,
         empresa_nome: values.nomeEmpresa,
         orgao: values.orgao,
         data_adesao: values.dataAdesao,
-        quantidade_parcelas: values.quantidadeParcelas,
+        parcelas_totais: values.parcelasTotais,
+        quantidade_parcelas: quantidadeParcelas,
         parcela_atual: values.parcelaAtual,
+        dia_util_limite: values.diaUtilLimite,
+        data_limite_envio: dataLimiteEnvio,
         numero_processo: values.numeroProcesso,
         site_url: values.siteParcelamento,
         senha_acesso: values.senhaAcesso,
@@ -197,10 +210,10 @@ export default function CreateInstallment() {
 
                 <FormField
                   control={form.control}
-                  name="quantidadeParcelas"
+                  name="parcelasTotais"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-slate-700">Quantidade de Parcelas</FormLabel>
+                      <FormLabel className="text-slate-700">Total de Parcelas</FormLabel>
                       <FormControl>
                         <Input type="number" min="1" className="bg-slate-50/50" {...field} />
                       </FormControl>
@@ -229,6 +242,43 @@ export default function CreateInstallment() {
                     <Input
                       readOnly
                       value={parcelasFaltando}
+                      className="bg-slate-100 text-slate-500"
+                      tabIndex={-1}
+                    />
+                  </FormControl>
+                </FormItem>
+
+                <FormField
+                  control={form.control}
+                  name="diaUtilLimite"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-700">Dia Útil Limite</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="Ex: 5"
+                          className="bg-slate-50/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormItem>
+                  <FormLabel className="text-slate-700">Data Limite (Prevista)</FormLabel>
+                  <FormControl>
+                    <Input
+                      readOnly
+                      value={
+                        dataLimiteEnvioPreview
+                          ? new Date(dataLimiteEnvioPreview).toLocaleDateString('pt-BR')
+                          : '-'
+                      }
                       className="bg-slate-100 text-slate-500"
                       tabIndex={-1}
                     />

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T20:40:46.265Z",
+  "generatedAt": "2026-04-08T11:52:30.789Z",
   "collections": [
     {
       "name": "users",
@@ -169,6 +169,30 @@
           "required": false,
           "system": false,
           "selectValues": ["Enviado", "Pendente"]
+        },
+        {
+          "name": "dia_util_limite",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "parcelas_totais",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_limite_envio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_ultimo_envio",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

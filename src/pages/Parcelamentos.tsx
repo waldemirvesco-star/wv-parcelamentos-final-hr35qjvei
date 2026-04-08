@@ -130,7 +130,7 @@ export default function Parcelamentos() {
             `"${item.empresa_nome}"`,
             `"${item.orgao || ''}"`,
             `"${item.data_adesao || ''}"`,
-            `"${item.parcela_atual || 0}/${item.quantidade_parcelas || 0}"`,
+            `"${item.parcela_atual || 0}/${item.parcelas_totais || item.quantidade_parcelas || 0}"`,
             `"${item.situacao || ''}"`,
             `"${item.status_envio || ''}"`,
           ].join(','),

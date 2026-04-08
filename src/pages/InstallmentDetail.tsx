@@ -18,13 +18,15 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@/components/ui/accordion'
-import { ArrowLeft, CheckCircle, Edit, Save, X, Eye, EyeOff, History } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Edit, Save, X, Eye, EyeOff, History, Send } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { getParcelamento, updateParcelamento } from '@/services/parcelamentos'
 import { getHistorico, createHistorico } from '@/services/historico'
 import { useRealtime } from '@/hooks/use-realtime'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
+import { getNextMonthBusinessDay } from '@/lib/business-days'
 
 const formatVal = (v: any) =>
   v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v)
@@ -49,10 +51,12 @@ export default function InstallmentDetail() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { toast } = useToast()
+  const { user } = useAuth()
 
   const [installment, setInstallment] = useState<any>(null)
   const [historyLogs, setHistoryLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSending, setIsSending] = useState(false)
 
   const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true')
   const [formData, setFormData] = useState<any>({})
@@ -101,7 +105,27 @@ export default function InstallmentDetail() {
   const handleSave = async () => {
     setFieldErrors({})
     try {
-      const changedKeys = Object.keys(formData).filter((key) => {
+      let dataToSave = { ...formData }
+
+      // Auto recalculate data_limite_envio if dia_util_limite changes
+      if (
+        dataToSave.dia_util_limite &&
+        dataToSave.dia_util_limite !== installment.dia_util_limite
+      ) {
+        dataToSave.data_limite_envio = getNextMonthBusinessDay(dataToSave.dia_util_limite)
+      }
+
+      // Auto recalculate quantidade_parcelas (faltando) if totais or atual changed
+      if (
+        dataToSave.parcelas_totais !== installment.parcelas_totais ||
+        dataToSave.parcela_atual !== installment.parcela_atual
+      ) {
+        const total = dataToSave.parcelas_totais || installment.parcelas_totais || 0
+        const atual = dataToSave.parcela_atual || installment.parcela_atual || 0
+        dataToSave.quantidade_parcelas = Math.max(0, total - atual)
+      }
+
+      const changedKeys = Object.keys(dataToSave).filter((key) => {
         if (
           [
             'id',
@@ -114,7 +138,7 @@ export default function InstallmentDetail() {
           ].includes(key)
         )
           return false
-        return formatVal(formData[key]) !== formatVal(installment[key])
+        return formatVal(dataToSave[key]) !== formatVal(installment[key])
       })
 
       if (changedKeys.length === 0) {
@@ -126,14 +150,15 @@ export default function InstallmentDetail() {
         changedKeys.map((key) =>
           createHistorico({
             parcelamento_id: installment.id,
+            usuario_id: user?.id,
             campo_alterado: key,
             valor_anterior: formatVal(installment[key]),
-            valor_novo: formatVal(formData[key]),
+            valor_novo: formatVal(dataToSave[key]),
           }),
         ),
       )
 
-      await updateParcelamento(installment.id, formData)
+      await updateParcelamento(installment.id, dataToSave)
       setIsEditing(false)
       toast({
         title: 'Alterações salvas',
@@ -145,10 +170,65 @@ export default function InstallmentDetail() {
     }
   }
 
+  const handleMarkAsSent = async () => {
+    setIsSending(true)
+    try {
+      const newParcelaAtual = (installment.parcela_atual || 0) + 1
+      const total =
+        installment.parcelas_totais ||
+        (installment.quantidade_parcelas || 0) + (installment.parcela_atual || 0)
+      const newQuantidade = Math.max(0, total - newParcelaAtual)
+      const dataUltimoEnvio = new Date().toISOString().split('T')[0]
+
+      let newSituacao = installment.situacao
+      if (newParcelaAtual >= total) {
+        newSituacao = 'Encerrado'
+      }
+
+      const updates: any = {
+        parcela_atual: newParcelaAtual,
+        quantidade_parcelas: newQuantidade,
+        status_envio: 'Enviado',
+        data_ultimo_envio: dataUltimoEnvio,
+        situacao: newSituacao,
+      }
+
+      const logs = Object.keys(updates)
+        .filter((k) => updates[k] !== installment[k])
+        .map((key) =>
+          createHistorico({
+            parcelamento_id: installment.id,
+            usuario_id: user?.id,
+            campo_alterado: key,
+            valor_anterior: formatVal(installment[key]),
+            valor_novo: formatVal(updates[key]),
+          }),
+        )
+
+      await Promise.all(logs)
+      await updateParcelamento(installment.id, updates)
+
+      toast({
+        title: 'Sucesso',
+        description: 'Parcelamento marcado como enviado.',
+        variant: 'default',
+      })
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Não foi possível marcar como enviado.',
+      })
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   const handleClose = async () => {
     try {
       await createHistorico({
         parcelamento_id: installment.id,
+        usuario_id: user?.id,
         campo_alterado: 'situacao',
         valor_anterior: installment.situacao,
         valor_novo: 'Encerrado',
@@ -166,6 +246,13 @@ export default function InstallmentDetail() {
       })
     }
   }
+
+  const dataLimiteFormatada = installment.data_limite_envio
+    ? new Date(installment.data_limite_envio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+    : '-'
+  const dataUltimoEnvioFormatada = installment.data_ultimo_envio
+    ? new Date(installment.data_ultimo_envio).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+    : '-'
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -187,6 +274,15 @@ export default function InstallmentDetail() {
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {!isEditing ? (
             <>
+              {installment.situacao !== 'Encerrado' && (
+                <Button
+                  onClick={handleMarkAsSent}
+                  disabled={isSending}
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
+                >
+                  <Send className="w-4 h-4 mr-2" /> Marcar como Enviado
+                </Button>
+              )}
               {installment.situacao !== 'Encerrado' && installment.situacao !== 'Rompido' && (
                 <Button
                   variant="outline"
@@ -238,6 +334,8 @@ export default function InstallmentDetail() {
             className={cn(
               'shadow-none',
               installment.situacao === 'Rompido' && 'bg-red-100 text-red-700 hover:bg-red-100',
+              installment.situacao === 'Encerrado' &&
+                'bg-slate-200 text-slate-700 hover:bg-slate-200',
             )}
           >
             {installment.situacao || '-'}
@@ -262,12 +360,12 @@ export default function InstallmentDetail() {
 
       {!isEditing ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-slate-200 md:col-span-2">
             <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="text-lg text-slate-800">Informações Gerais</CardTitle>
             </CardHeader>
-            <CardContent className="pt-6 grid grid-cols-2 gap-y-6 gap-x-4">
-              <div className="col-span-2 sm:col-span-1">
+            <CardContent className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-y-6 gap-x-4">
+              <div className="col-span-2 sm:col-span-2">
                 <ViewField label="Empresa" value={installment.empresa_nome} />
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -276,7 +374,7 @@ export default function InstallmentDetail() {
               <div className="col-span-2 sm:col-span-1">
                 <ViewField label="Órgão" value={installment.orgao} />
               </div>
-              <div className="col-span-2 sm:col-span-1">
+              <div className="col-span-2 sm:col-span-2">
                 <ViewField label="Processo" value={installment.numero_processo} />
               </div>
             </CardContent>
@@ -288,30 +386,55 @@ export default function InstallmentDetail() {
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-2 gap-y-6 gap-x-4">
               <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Adesão" value={installment.data_adesao} />
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Parcelas" value={installment.quantidade_parcelas} />
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <ViewField label="Atual" value={installment.parcela_atual} />
+                <ViewField
+                  label="Adesão"
+                  value={
+                    installment.data_adesao
+                      ? new Date(installment.data_adesao).toLocaleDateString('pt-BR', {
+                          timeZone: 'UTC',
+                        })
+                      : '-'
+                  }
+                />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <ViewField
-                  label="Faltando"
-                  value={Math.max(
-                    0,
-                    Number(installment.quantidade_parcelas || 0) -
-                      Number(installment.parcela_atual || 0),
-                  )}
+                  label="Parcelas Totais"
+                  value={
+                    installment.parcelas_totais ||
+                    installment.quantidade_parcelas + installment.parcela_atual
+                  }
                 />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <ViewField label="Parcela Atual" value={installment.parcela_atual} />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <ViewField label="Parcelas Faltantes" value={installment.quantidade_parcelas} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-slate-200">
+            <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
+              <CardTitle className="text-lg text-slate-800">Prazos e Envios</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 grid grid-cols-2 gap-y-6 gap-x-4">
+              <div className="col-span-2 sm:col-span-1">
+                <ViewField label="Dia Útil Limite" value={installment.dia_util_limite} />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <ViewField label="Data Limite (Próx. Mês)" value={dataLimiteFormatada} />
+              </div>
+              <div className="col-span-2 sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                <ViewField label="Último Envio Realizado" value={dataUltimoEnvioFormatada} />
               </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border-slate-200 md:col-span-2">
             <CardHeader className="pb-4 border-b border-slate-100 bg-slate-50/50">
-              <CardTitle className="text-lg text-slate-800">Acesso e Envio</CardTitle>
+              <CardTitle className="text-lg text-slate-800">Acesso e Credenciais</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
               <ViewField label="Método de Envio" value={installment.metodo_envio?.join(', ')} />
@@ -403,14 +526,26 @@ export default function InstallmentDetail() {
                 className={cn(fieldErrors.data_adesao && 'border-destructive')}
               />
             </Field>
-            <Field label="Quantidade de Parcelas" error={fieldErrors.quantidade_parcelas}>
+            <Field label="Dia Útil Limite" error={fieldErrors.dia_util_limite}>
               <Input
                 type="number"
-                value={formData.quantidade_parcelas || ''}
+                min="1"
+                max="31"
+                value={formData.dia_util_limite || ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, quantidade_parcelas: Number(e.target.value) })
+                  setFormData({ ...formData, dia_util_limite: Number(e.target.value) })
                 }
-                className={cn(fieldErrors.quantidade_parcelas && 'border-destructive')}
+                className={cn(fieldErrors.dia_util_limite && 'border-destructive')}
+              />
+            </Field>
+            <Field label="Total de Parcelas" error={fieldErrors.parcelas_totais}>
+              <Input
+                type="number"
+                value={formData.parcelas_totais || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, parcelas_totais: Number(e.target.value) })
+                }
+                className={cn(fieldErrors.parcelas_totais && 'border-destructive')}
               />
             </Field>
             <Field label="Parcela Atual" error={fieldErrors.parcela_atual}>
