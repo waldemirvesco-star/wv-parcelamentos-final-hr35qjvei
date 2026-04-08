@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, MoreHorizontal, UserCircle, Shield, ShieldAlert } from 'lucide-react'
+import { Plus, MoreHorizontal, UserCircle, ShieldAlert, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -28,6 +28,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import {
   Select,
@@ -36,10 +37,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
-import { getUsers, createUser, updateUser, type User } from '@/services/users'
+import { getUsers, createUser, updateUser, deleteUser, type User } from '@/services/users'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
 export default function AdminUsers() {
@@ -49,6 +60,9 @@ export default function AdminUsers() {
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -137,6 +151,21 @@ export default function AdminUsers() {
     }
   }
 
+  const confirmDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (!userToDelete) return
+    setDeleting(true)
+    try {
+      await deleteUser(userToDelete.id)
+      toast.success('Usuário excluído com sucesso')
+      setUserToDelete(null)
+    } catch (err) {
+      toast.error('Erro ao excluir usuário')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -221,9 +250,18 @@ export default function AdminUsers() {
                         <DropdownMenuItem
                           onClick={() => toggleStatus(u)}
                           disabled={u.id === currentUser?.id}
-                          className={u.active ? 'text-red-600' : 'text-emerald-600'}
+                          className={u.active ? 'text-amber-600' : 'text-emerald-600'}
                         >
                           {u.active ? 'Desativar acesso' : 'Ativar acesso'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setUserToDelete(u)}
+                          disabled={u.id === currentUser?.id}
+                          className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Excluir usuário</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -305,6 +343,31 @@ export default function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário{' '}
+              <strong className="text-slate-900">
+                {userToDelete?.name || userToDelete?.email}
+              </strong>
+              ? Esta ação é permanente e não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

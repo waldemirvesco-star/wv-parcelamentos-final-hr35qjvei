@@ -25,3 +25,7 @@ export const createUser = async (data: Partial<User> & { password?: string }) =>
 export const updateUser = async (id: string, data: Partial<User>) => {
   return pb.collection('users').update(id, data)
 }
+
+export const deleteUser = async (id: string) => {
+  return pb.collection('users').delete(id)
+}

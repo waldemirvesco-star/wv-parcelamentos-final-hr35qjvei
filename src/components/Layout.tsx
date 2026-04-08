@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom'
 import { User, LogOut } from 'lucide-react'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { NotificationCenter } from '@/components/NotificationCenter'
@@ -32,11 +32,8 @@ export default function Layout() {
               <NotificationCenter />
               <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
               <div className="flex items-center gap-2 hover:bg-slate-100 p-1.5 rounded-lg transition-colors">
-                <Avatar className="h-8 w-8 border border-slate-200">
-                  <AvatarImage
-                    src={`https://img.usecurling.com/ppl/thumbnail?gender=female&seed=${user?.id}`}
-                  />
-                  <AvatarFallback>
+                <Avatar className="h-8 w-8 border border-slate-200 bg-white">
+                  <AvatarFallback className="bg-slate-100 text-slate-600">
                     <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
