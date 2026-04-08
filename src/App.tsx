@@ -8,6 +8,8 @@ import InstallmentDetail from './pages/InstallmentDetail'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import AdminUsers from './pages/admin/Users'
 import Parcelamentos from './pages/Parcelamentos'
 import Relatorios from './pages/Relatorios'
@@ -37,6 +39,8 @@ const App = () => (
         <Sonner />
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/esqueci-senha" element={<ForgotPassword />} />
+          <Route path="/redefinir-senha" element={<ResetPassword />} />
           <Route
             element={
               <ProtectedRoute>
