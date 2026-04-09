@@ -50,7 +50,7 @@ interface InstallmentTableProps {
   onDateEndChange: (val: string) => void
   onExportCsv: () => void
   itemsPerPage: number
-  onEdit: (item: any) => void
+  onEdit?: (item: any) => void
 }
 
 export function InstallmentTable({
@@ -243,7 +243,7 @@ export function InstallmentTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEdit(item)}
+                        onClick={() => onEdit?.(item)}
                         className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                         title="Editar"
                       >
