@@ -91,33 +91,4 @@ export default function Login() {
                   variant="ghost"
                   size="icon"
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-slate-500 hover:text-slate-700"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <Eye className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  <span className="sr-only">
-                    {showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                  </span>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 transition-all"
-              disabled={isLoading}
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Entrar
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
-  )
-}
+                  onClick={() => setShow
