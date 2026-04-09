@@ -37,7 +37,10 @@ export function EditInstallmentModal({
     situacao: '',
     status_envio: '',
     parcela_atual: 0,
-    parcelas_totais: 0,
+    quantidade_parcelas: 0,
+    data_adesao: '',
+    numero_processo: '',
+    site_url: '',
   })
 
   useEffect(() => {
@@ -49,7 +52,10 @@ export function EditInstallmentModal({
         situacao: item.situacao || '',
         status_envio: item.status_envio || '',
         parcela_atual: item.parcela_atual || 0,
-        parcelas_totais: item.parcelas_totais || item.quantidade_parcelas || 0,
+        quantidade_parcelas: item.quantidade_parcelas || item.parcelas_totais || 0,
+        data_adesao: item.data_adesao || '',
+        numero_processo: item.numero_processo || '',
+        site_url: item.site_url || '',
       })
     }
   }, [item])
@@ -70,7 +76,7 @@ export function EditInstallmentModal({
     } catch (error) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível atualizar o parcelamento.',
+        description: 'Erro ao atualizar parcelamento.',
         variant: 'destructive',
       })
     } finally {
@@ -80,7 +86,7 @@ export function EditInstallmentModal({
 
   return (
     <Dialog open={!!item} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Parcelamento</DialogTitle>
         </DialogHeader>
@@ -149,23 +155,49 @@ export function EditInstallmentModal({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label>Parcela Atual</Label>
-                <Input
-                  type="number"
-                  value={formData.parcela_atual}
-                  onChange={(e) => handleChange('parcela_atual', parseInt(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Total</Label>
-                <Input
-                  type="number"
-                  value={formData.parcelas_totais}
-                  onChange={(e) => handleChange('parcelas_totais', parseInt(e.target.value))}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Data de Adesão</Label>
+              <Input
+                type="date"
+                value={formData.data_adesao}
+                onChange={(e) => handleChange('data_adesao', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Parcela Atual</Label>
+              <Input
+                type="number"
+                value={formData.parcela_atual}
+                onChange={(e) => handleChange('parcela_atual', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Total de Parcelas</Label>
+              <Input
+                type="number"
+                value={formData.quantidade_parcelas}
+                onChange={(e) => handleChange('quantidade_parcelas', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nº do Processo</Label>
+              <Input
+                value={formData.numero_processo}
+                onChange={(e) => handleChange('numero_processo', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>URL do Site</Label>
+              <Input
+                type="url"
+                value={formData.site_url}
+                onChange={(e) => handleChange('site_url', e.target.value)}
+                placeholder="https://..."
+              />
             </div>
           </div>
           <DialogFooter className="mt-6">

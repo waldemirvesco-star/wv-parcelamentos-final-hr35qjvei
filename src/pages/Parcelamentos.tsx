@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InstallmentTable } from '@/components/dashboard/InstallmentTable'
+import { EditInstallmentModal } from '@/components/dashboard/EditInstallmentModal'
 import { useToast } from '@/hooks/use-toast'
 import {
   getParcelamentosPaginated,
@@ -26,6 +27,8 @@ export default function Parcelamentos() {
   const [metodoEnvioFilter, setMetodoEnvioFilter] = useState('Todos')
   const [dateStart, setDateStart] = useState('')
   const [dateEnd, setDateEnd] = useState('')
+
+  const [editingItem, setEditingItem] = useState<any>(null)
 
   const { toast } = useToast()
 
@@ -217,8 +220,18 @@ export default function Parcelamentos() {
           }}
           onExportCsv={handleExportCsv}
           itemsPerPage={ITEMS_PER_PAGE}
+          onEdit={setEditingItem}
         />
       </div>
+
+      <EditInstallmentModal
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={() => {
+          loadData()
+          setEditingItem(null)
+        }}
+      />
     </div>
   )
 }
