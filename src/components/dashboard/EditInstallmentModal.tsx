@@ -18,8 +18,12 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { updateParcelamento } from '@/services/parcelamentos'
-import { getHistorico } from '@/services/historico'
+import { getHistorico, createHistorico } from '@/services/historico'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
+
+const formatVal = (v: any) =>
+  v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v)
 
 export function EditInstallmentModal({
   item,
@@ -31,6 +35,7 @@ export function EditInstallmentModal({
   onSave: () => void
 }) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [lastModification, setLastModification] = useState<any>(null)
   const [loadingHistory, setLoadingHistory] = useState(false)
@@ -97,7 +102,25 @@ export function EditInstallmentModal({
     if (!item?.id) return
     setLoading(true)
     try {
-      await updateParcelamento(item.id, formData)
+      const changedKeys = Object.keys(formData).filter((key) => {
+        return formatVal(formData[key as keyof typeof formData]) !== formatVal(item[key])
+      })
+
+      if (changedKeys.length > 0) {
+        await Promise.all(
+          changedKeys.map((key) =>
+            createHistorico({
+              parcelamento_id: item.id,
+              usuario_id: user?.id,
+              campo_alterado: key,
+              valor_anterior: formatVal(item[key]),
+              valor_novo: formatVal(formData[key as keyof typeof formData]),
+            }),
+          ),
+        )
+        await updateParcelamento(item.id, formData)
+      }
+
       toast({ title: 'Sucesso', description: 'Parcelamento atualizado com sucesso.' })
       onSave()
       onClose()
