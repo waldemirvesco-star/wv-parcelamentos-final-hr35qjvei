@@ -16,7 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { updateParcelamento } from '@/services/parcelamentos'
+import { getHistorico } from '@/services/historico'
 import { useToast } from '@/hooks/use-toast'
 
 export function EditInstallmentModal({
@@ -30,6 +32,8 @@ export function EditInstallmentModal({
 }) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [lastModification, setLastModification] = useState<any>(null)
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const [formData, setFormData] = useState({
     empresa_nome: '',
     cnpj: '',
@@ -57,8 +61,32 @@ export function EditInstallmentModal({
         numero_processo: item.numero_processo || '',
         site_url: item.site_url || '',
       })
+
+      if (item.id) {
+        loadHistory(item.id)
+      } else {
+        setLastModification(null)
+      }
+    } else {
+      setLastModification(null)
     }
   }, [item])
+
+  const loadHistory = async (id: string) => {
+    setLoadingHistory(true)
+    try {
+      const history = await getHistorico(id)
+      if (history && history.length > 0) {
+        setLastModification(history[0])
+      } else {
+        setLastModification(null)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -200,6 +228,28 @@ export function EditInstallmentModal({
               />
             </div>
           </div>
+
+          <Separator className="my-4" />
+          <div className="text-sm text-muted-foreground">
+            {loadingHistory ? (
+              <span>Carregando histórico...</span>
+            ) : lastModification ? (
+              <span>
+                Última alteração por:{' '}
+                <strong className="font-medium text-foreground">
+                  {lastModification.expand?.usuario_id?.name || 'Usuário desconhecido'}
+                </strong>{' '}
+                em {new Date(lastModification.created).toLocaleDateString('pt-BR')} às{' '}
+                {new Date(lastModification.created).toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            ) : (
+              <span>Sem histórico de alterações disponível</span>
+            )}
+          </div>
+
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancelar
