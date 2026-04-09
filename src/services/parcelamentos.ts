@@ -46,11 +46,14 @@ export const getParcelamentosPaginated = async (
     filters.push(`data_adesao <= "${dateEnd}"`)
   }
 
-  const limit = 20 // Fixed to 20 items per page as requested
-  const result = await pb.collection('parcelamentos').getList(page, limit, {
-    filter: filters.length > 0 ? filters.join(' && ') : '',
+  const options: any = {
     sort: '-created',
-  })
+  }
+  if (filters.length > 0) {
+    options.filter = filters.join(' && ')
+  }
+
+  const result = await pb.collection('parcelamentos').getList(page, perPage, options)
 
   return {
     items: result.items,
@@ -87,9 +90,21 @@ export const getParcelamentosStats = async (
       }
     }
 
-    const res = await pb.collection('parcelamentos').getList(1, 1, {
-      filter: filters.join(' && '),
-    })
+    if (metodoEnvioFilter && metodoEnvioFilter !== 'Todos') {
+      if (metodoEnvioFilter === 'Ambos') {
+        filters.push(`metodo_envio ~ "Email"`)
+        filters.push(`metodo_envio ~ "WhatsApp"`)
+      } else {
+        filters.push(`metodo_envio ~ "${metodoEnvioFilter}"`)
+      }
+    }
+
+    const options: any = {}
+    if (filters.length > 0) {
+      options.filter = filters.join(' && ')
+    }
+
+    const res = await pb.collection('parcelamentos').getList(1, 1, options)
     return res.totalItems
   }
 
@@ -106,7 +121,7 @@ export const getParcelamentosStats = async (
 
 export const getDistributionByOrgao = async () => {
   const result = await pb.collection('parcelamentos').getFullList({
-    fields: 'orgao',
+    fields: 'id,orgao',
   })
 
   const distribution: Record<string, number> = {}
@@ -166,10 +181,14 @@ export const getAllParcelamentosFiltered = async (
     filters.push(`data_adesao <= "${dateEnd}"`)
   }
 
-  return pb.collection('parcelamentos').getFullList({
-    filter: filters.length > 0 ? filters.join(' && ') : '',
+  const options: any = {
     sort: '-created',
-  })
+  }
+  if (filters.length > 0) {
+    options.filter = filters.join(' && ')
+  }
+
+  return pb.collection('parcelamentos').getFullList(options)
 }
 
 export const createParcelamento = async (data: any) => {
@@ -197,7 +216,7 @@ export const getUserParcelamentos = async (userId?: string) => {
     sort: '-created',
   }
   if (userId) {
-    options.filter = `user = "${userId}"`
+    options.filter = `usuario_id = "${userId}"`
   }
   return pb.collection('parcelamentos').getFullList(options)
 }
