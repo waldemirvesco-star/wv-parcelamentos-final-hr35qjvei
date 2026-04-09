@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-08T19:30:30.764Z",
+  "generatedAt": "2026-04-09T16:51:10.120Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "role",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Admin", "Standard User"]
+          "selectValues": [
+            "Admin",
+            "Standard User"
+          ]
         },
         {
           "name": "active",
@@ -147,28 +155,40 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "situacao",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Ativo", "Encerrado", "Rompido"]
+          "selectValues": [
+            "Ativo",
+            "Encerrado",
+            "Rompido"
+          ]
         },
         {
           "name": "status_envio",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Enviado", "Pendente"]
+          "selectValues": [
+            "Enviado",
+            "Pendente"
+          ]
         },
         {
           "name": "dia_util_limite",
@@ -245,14 +265,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": []
@@ -287,21 +312,29 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Vencido", "Proximo"]
+          "selectValues": [
+            "Vencido",
+            "Proximo"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
