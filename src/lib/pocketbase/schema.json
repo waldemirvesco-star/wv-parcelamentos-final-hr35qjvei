@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-09T17:44:28.471Z",
+  "generatedAt": "2026-04-09T17:46:20.871Z",
   "collections": [
     {
       "name": "users",
@@ -29,29 +29,21 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "role",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "Admin",
-            "Standard User"
-          ]
+          "selectValues": ["Admin", "Standard User"]
         },
         {
           "name": "active",
@@ -155,40 +147,28 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "situacao",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Ativo",
-            "Encerrado",
-            "Rompido"
-          ]
+          "selectValues": ["Ativo", "Encerrado", "Rompido"]
         },
         {
           "name": "status_envio",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Enviado",
-            "Pendente"
-          ]
+          "selectValues": ["Enviado", "Pendente"]
         },
         {
           "name": "dia_util_limite",
@@ -221,8 +201,8 @@
       "name": "historico_alteracoes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && usuario_id = @request.auth.id",
-        "view": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != '' && usuario_id = @request.auth.id",
         "delete": "@request.auth.id != '' && usuario_id = @request.auth.id"
@@ -265,19 +245,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": []
@@ -312,29 +287,21 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "Vencido",
-            "Proximo"
-          ]
+          "selectValues": ["Vencido", "Proximo"]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": [
